@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- Coding By CodingNepal - codingnepalweb.com -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Login & Registration Form</title>
+  <!---Custom CSS File--->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/userform.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="registration form">
+      <header>Signup</header>
+      <form method="POST" action="/register">
+        {{ form.hidden_tag() }}
+        {{ form.username }}
+        {{ form.password }}
+        {{ form.submit }}
+      </form>
+      <div class="signup">
+        <span class="signup">Already have an account?
+         <a href="{{ url_for('login') }}">Login</a>
+        </span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

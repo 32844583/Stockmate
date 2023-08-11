@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>編輯交易</title>
+</head>
+<body>
+    <h1>編輯交易</h1>
+{% for trade in trades %}
+    <form method="post">
+        <label>日期: </label>
+        <input type="text" name="date" value="{{ trade['日期'] }}"><br>
+        <label>股票代號: </label>
+        <input type="text" name="stock_symbol" value="{{ trade['股票代號'] }}"><br>
+        <label>股票名稱: </label>
+        <input type="text" name="stock_name" value="{{ trade['股票名稱'] }}"><br>
+        <label>價格: </label>
+        <input type="text" name="price" value="{{ trade['價格'] }}"><br>
+        <label>數量: </label>
+        <input type="text" name="quantity" value="{{ trade['數量'] }}"><br>
+        <label>買/賣: </label>
+        <input type="text" name="action" value="{{ trade['買/賣'] }}"><br>
+        <label>原因: </label>
+        <input type="text" name="reason" value="{{ trade['原因'] }}"><br>
+        <label>使用規則: </label>
+        <input type="text" name="rule" value="{{ trade['使用規則'] }}"><br>
+        <input type="submit" value="儲存">
+    </form>
+{% endfor %}
+
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>刪除交易</title>
+</head>
+<body>
+    <h1>確認刪除交易</h1>
+    <p>您確定要刪除以下交易嗎？</p>
+    <p>日期: {{ trade[1] }}</p>
+    <p>股票代號: {{ trade[2] }}</p>
+    <p>價格: {{ trade[3] }}</p>
+    <p>數量: {{ trade[4] }}</p>
+    <p>買/賣: {{ trade[5] }}</p>
+    <p>原因: {{ trade[6] }}</p>
+    <p>使用規則: {{ trade[7] }}</p>
+    <form method="post">
+        <input type="submit" value="確定刪除">
+    </form>
+</body>
+</html>

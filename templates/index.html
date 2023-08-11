@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/table_style.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
+
+    <title>股票交易檢討系統</title>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    <h1>{{ stock_name }}</h1>
+    <form action="/" method="get">
+    <label for="symbol">請輸入股票代碼：</label>
+    <input type="text" id="symbol" name="symbol" value="{{ symbol }}">
+    <input type="submit" value="查詢">
+    </form>
+    <div id="candlestick-chart">{{ plot|safe }}</div>
+    <div id="volume-chart"></div>
+    <h1>{{ stock_name }}交易記錄</h1>
+
+    <div class="table-outbox">
+      <table>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>股票代號</th>
+            <th>股票名稱</th>
+            <th>價格</th>
+            <th>數量</th>
+            <th>買/賣</th>
+            <th>原因</th>
+            <th>使用規則</th>
+            <th>編輯</th>
+            <th>刪除</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for trade in trades %}
+                <tr>
+                    <td>{{ trade['日期'] }}</td>
+                    <td>{{ trade['股票代號'] }}</td>
+                    <td>{{ trade['股票名稱'] }}</td>
+                    <td>{{ trade['價格'] }}</td>
+                    <td>{{ trade['數量'] }}</td>
+                    <td>{{ trade['買/賣'] }}</td>
+                    <td>{{ trade['原因'] }}</td>
+                    <td>{{ trade['使用規則'] }}</td>
+                    <td>
+                        <form action="/edit_trade/{{ trade['trade_id'] }}" method="get">
+                            <!-- 創建一個按鈕 -->
+                            <input type="submit" value="編輯交易">
+                        </form>
+                    </td>
+                    <td>
+                        <form action="/delete_trade/{{ trade['trade_id'] }}" method="get">
+                            <!-- 創建一個按鈕 -->
+                            <input type="submit" value="刪除交易">
+                        </form>
+                    </td>
+                    
+                    
+                </tr>
+            {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+
+
+    <button id="showButton">新增交易</button>
+    {% include 'form.html' %}
+
+
+    <script>
+        const formDiv = document.querySelector(".form_div");
+
+        document.getElementById("showButton").addEventListener("click", function() {
+            formDiv.style.opacity = '1';
+            formDiv.style.zIndex = "9999";
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!formDiv.contains(event.target) && event.target !== document.getElementById("showButton")) {
+            formDiv.style.opacity = '0';
+            formDiv.style.zIndex = "1";
+          }
+        });
+    </script>
+</body>
+</html>
