@@ -26,8 +26,10 @@ from flask_bcrypt import Bcrypt
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
+from dateutil.relativedelta import relativedelta
 from sqlalchemy import MetaData
+import pandas_ta as ta
+
 naming_convention = {
 "ix": "ix_%(column_0_label)s",
 "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -214,11 +216,12 @@ def index():
     df = pd.read_csv('trades.csv', encoding='utf-8-sig')
     print(df)
     trade_df = df[(df['user_id'] == user_id) & (df['股票名稱'] == stock_name)]
+    trade_df['日期'] = pd.to_datetime(trade_df['日期'])
 
     fig.add_trace(go.Scatter(x=trade_df.loc[trade_df['買/賣'] == '買', '日期'],
     y=trade_df.loc[trade_df['買/賣'] == '買', '價格'],
     mode='markers',
-    marker=dict(symbol='triangle-up', color='green'),
+    marker=dict(symbol='triangle-up', color='green', size=30),
     text=trade_df.loc[trade_df['買/賣'] == '買', '買/賣'],
     customdata=trade_df.loc[trade_df['買/賣'] == '買', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
@@ -227,7 +230,7 @@ def index():
     fig.add_trace(go.Scatter(x=trade_df.loc[trade_df['買/賣'] == '賣', '日期'],
     y=trade_df.loc[trade_df['買/賣'] == '賣', '價格'],
     mode='markers',
-    marker=dict(symbol='triangle-down', color='red'),
+    marker=dict(symbol='triangle-down', color='red', size=30),
     text=trade_df.loc[trade_df['買/賣'] == '賣', '買/賣'],
     customdata=trade_df.loc[trade_df['買/賣'] == '賣', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
@@ -238,7 +241,11 @@ def index():
     trades=trade_df.to_dict(orient='records')
     print(trades)
 
-    return render_template('index.html', plot=fig.to_html(), trades=trades, stock_name=stock_name, stock_code=symbol)
+    card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
+    card_df = card_df[(card_df['user_id'] == user_id)]
+    cards=card_df.to_dict(orient='records')
+
+    return render_template('index.html', plot=fig.to_html(), cards=cards, trades=trades, stock_name=stock_name, stock_code=symbol)
 
 @app.route('/cards', methods=['POST', 'GET'])
 @login_required
@@ -252,13 +259,13 @@ def cards():
     df = pd.read_csv('cards.csv', encoding='utf-8-sig')
 
     if request.method == 'POST':
-        combination_name = request.form.get("combination_name")
+        rule = request.form.get("rule")
 
         user_id = int(current_user.get_id())
         card_list = request.form.getlist('card_name') # 獲取勾選框的 value 列表
         card_string = '-'.join(card_list) # 將列表中的元素用 '-' 串成一個字串
         card_id = pd.read_csv('cards.csv', encoding='utf-8-sig').shape[0]
-        df = pd.DataFrame([[ card_id, user_id, combination_name, card_string]], \
+        df = pd.DataFrame([[ card_id, user_id, rule, card_string]], \
             columns=["card_id", "user_id",  "卡組名稱", "使用卡牌"])
         df.to_csv("cards.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
         df = pd.read_csv('cards.csv', encoding='utf-8-sig')
@@ -290,14 +297,14 @@ def edit_card(card_id):
     else:
         df = pd.read_csv('cards.csv', encoding='utf-8-sig')
 
-        combination_name = request.form.get("combination_name")
+        rule = request.form.get("rule")
         card_list = request.form.getlist('card_name') # 獲取勾選框的 value 列表
         card_string = '-'.join(card_list) # 將列表中的元素用 '-' 串成一個字串
 
         mask = df['card_id'] == card_id
 
         data = {
-            '卡組名稱': combination_name,
+            '卡組名稱': rule,
             '使用卡牌': card_string,
         }
 
@@ -400,23 +407,96 @@ def is_buy_in_overbought(stock_symbol, target_date, rsi_period, rsi_threshold, j
         else:
             return "賣點不在RSI超賣區"
 
+
+
 @app.route('/review', methods=['GET', 'POST'])
 @login_required
 def review():
-    term = '短期'
-    indicators = 'rsi'
-    # for indicator in indicators:
+    user_id = int(current_user.get_id())
+    df = pd.read_csv('trades.csv', encoding='utf-8-sig')
+    trades = df.loc[(df['user_id'] == user_id)]
+    buy_df = pd.DataFrame()
+    sell_df = pd.DataFrame()
+    if request.method == 'POST':
+        rule = request.form.get("rule")
+        options = request.form.get("options")
+        card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
+        cards = card_df.loc[card_df['卡組名稱'] == rule]
+        data = cards['使用卡牌'].values[0].split('-')
+        term = data[0]
 
-    df = pd.read_csv('rule.csv', encoding='utf-8-sig')
-    
-    rule = df[(df['名稱'] == indicator) & (df['長短期'] == term)]
-    stock_symbol = "AAPL"  # 股票代碼
-    target_date = "2023-08-01"  # 指定日期
-    rsi_period = rule['天數']  # RSI的計算週期
-    buy_threshold = df[(df['名稱'] == indicator) & (df['長短期'] == term) & (df['行為'] == '買'), '門檻']
-    sell_threshold = df[(df['名稱'] == indicator) & (df['長短期'] == term) & (df['行為'] == '賣'), '門檻']
-    result = is_buy_in_overbought(stock_symbol, target_date, rsi_period, buy_threshold, sell_threshold, judge)
-    return 'test'
+        df = trades.loc[(trades['股票名稱'] == options) & (trades['使用規則'] == rule) & (trades['user_id'] == user_id)]
+        
+        stock_symbol = df['股票代號'].iloc[0]
+        start_date = pd.to_datetime(df['日期'].min()) - relativedelta(months=2)
+        start_date_str = start_date.strftime('%Y-%m-%d')
+
+        end_date = pd.to_datetime(df['日期'].max()) + relativedelta(days=2)
+        end_date_str = end_date.strftime('%Y-%m-%d')
+
+        ticker = yf.Ticker(stock_symbol)
+        stock_data = ticker.history(stock_symbol, start=start_date_str, end=end_date_str)
+        stock_data.reset_index(inplace=True)
+        stock_data = stock_data.rename(columns={'Date': '日期'})
+        stock_data['日期'] = stock_data['日期'].dt.strftime('%Y-%m-%d')
+        # 计算简单移动平均线（SMA）
+        stock_data['sma'] = ta.sma(stock_data['Close'], length=20)
+
+        # 计算相对强弱指数（RSI）
+        stock_data['rsi'] = ta.rsi(stock_data['Close'], length=14)
+
+        # 计算布林带（Bollinger Bands）
+        stock_data[['bb_bbm', 'bb_bbh', 'bb_bbl', 'bb_bbb', 'bb_BBP']] = ta.bbands(stock_data['Close'], length=20)
+
+        # 计算能量潮（Chaikin Money Flow, CMF）
+        stock_data['cmf'] = ta.cmf(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=20)
+        
+        # 判断买入信号是否达成
+
+        df = pd.merge(df, stock_data, how='left', on='日期')
+        df = df.drop(['Dividends', 'Stock Splits'], axis=1)
+        buy_df = df.loc[df['買/賣'] == '買']
+        buy_df['sma_buy'] = buy_df['Close'] > buy_df['sma']
+        buy_df['rsi_buy'] = buy_df['rsi'] < 30
+        buy_df['bb_buy'] = buy_df['Close'] < buy_df['bb_bbl']
+        buy_df['cmf_buy'] = buy_df['cmf'] > 0
+        sell_df = df.loc[df['買/賣'] == '賣']
+        sell_df['sma_sell'] = sell_df['Close'] < sell_df['sma']
+        sell_df['rsi_sell'] = sell_df['rsi'] > 70
+        sell_df['bb_sell'] = sell_df['Close'] > sell_df['bb_bbl']
+        sell_df['cmf_sell'] = sell_df['cmf'] < 0
+        print(buy_df)
+        print(sell_df)
+        # if 'RSI' in data[1:]:
+        #     stock_data['RSI'] = ta.rsi(stock_data['Close'], length=rsi_period)
+        # elif 'MA' in data[1:]:
+        #     ...
+        # stock_data['OBV'] = ta.obv(stock_data['Close'], stock_data['Volume'])
+
+
+        # print(stock_data)
+        for card in data[1:]:
+            print(card)
+
+
+    trades.drop_duplicates(subset=['使用規則', '股票名稱'], keep='first', inplace=True)
+
+    trades = trades.to_dict(orient='records')
+
+    buy_df = buy_df.to_dict(orient='records')
+    sell_df = sell_df.to_dict(orient='records')
+    return render_template('review.html', trades=trades, buy_df=buy_df, sell_df=sell_df)
+
+@app.route('/options')
+def options():
+
+    rule = request.args.get('rule')
+    user_id = int(current_user.get_id())
+    df = pd.read_csv('trades.csv', encoding='utf-8-sig')
+    cards = df.loc[(df['user_id'] == user_id) & (df['使用規則'] == rule)]
+    cards.drop_duplicates(subset=['使用規則', '股票名稱'], keep='first', inplace=True)
+
+    return jsonify(cards['股票名稱'].tolist())
 
 
 @app.route('/form', methods=['GET', 'POST'])

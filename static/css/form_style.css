@@ -9,7 +9,7 @@
   position: fixed;
   top: 0%;
   left: 35%;
-/*  z-index: 10000;*/
+  z-index: -1;
   align-items: center;
   justify-content: center;
   width: 50vw;

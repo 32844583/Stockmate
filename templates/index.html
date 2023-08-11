@@ -13,7 +13,7 @@
     {% include 'navbar.html' %}
 
     <h1>{{ stock_name }}</h1>
-    <form action="/" method="get">
+    <form style='display: none;'action="/" method="get">
     <label for="symbol">請輸入股票代碼：</label>
     <input type="text" id="symbol" name="symbol" value="{{ symbol }}">
     <input type="submit" value="查詢">
@@ -50,13 +50,13 @@
                     <td>{{ trade['原因'] }}</td>
                     <td>{{ trade['使用規則'] }}</td>
                     <td>
-                        <form action="/edit_trade/{{ trade['trade_id'] }}" method="get">
+                        <form action="{{ url_for('edit_trade', trade_id=trade['trade_id']) }}" method="get">
                             <!-- 創建一個按鈕 -->
                             <input type="submit" value="編輯交易">
                         </form>
                     </td>
                     <td>
-                        <form action="/delete_trade/{{ trade['trade_id'] }}" method="get">
+                        <form action="{{ url_for('delete_trade', trade_id=trade['trade_id']) }}" method="get">
                             <!-- 創建一個按鈕 -->
                             <input type="submit" value="刪除交易">
                         </form>
@@ -86,7 +86,7 @@
         document.addEventListener('click', (event) => {
           if (!formDiv.contains(event.target) && event.target !== document.getElementById("showButton")) {
             formDiv.style.opacity = '0';
-            formDiv.style.zIndex = "1";
+            formDiv.style.zIndex = "-1";
           }
         });
     </script>

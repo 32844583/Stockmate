@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>股票交易檢討系統</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/table_style.css') }}">
+</head>
+    {% include 'navbar.html' %}
+
+<body><!-- 下拉列表 -->
+
+    <form action="{{ url_for('review') }}" method='post'>
+      <select id="rule" name="rule">
+        <option value="" selected disabled>卡組名稱</option>
+
+        {% for trade in trades %}
+        <option value="{{ trade['使用規則'] }}">{{ trade['使用規則'] }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- 選項列表 -->
+      <select id="options" name="options">
+        <option value="" selected disabled>股票名稱</option>
+      </select>
+      <input type="submit" value="Submit">
+  </form>
+    <div class="table-outbox">
+      <table>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>股票代號</th>
+            <th>股票名稱</th>
+            <th>價格</th>
+            <th>數量</th>
+            <th>買/賣</th>
+            <th>原因</th>
+            <th>使用規則</th>
+            <th>sma_buy</th>
+            <th>rsi_buy </th>
+            <th>bb_buy</th>
+            <th>cmf_buy</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for buy in buy_df %}
+                <tr>
+                    <td>{{ buy['日期'] }}</td>
+                    <td>{{ buy['股票代號'] }}</td>
+                    <td>{{ buy['股票名稱'] }}</td>
+                    <td>{{ buy['價格'] }}</td>
+                    <td>{{ buy['數量'] }}</td>
+                    <td>{{ buy['買/賣'] }}</td>
+                    <td>{{ buy['原因'] }}</td>
+                    <td>{{ buy['使用規則'] }}</td>
+                    <td>{{ buy['sma_buy'] }}</td>
+                    <td>{{ buy['rsi_buy'] }}</td>
+                    <td>{{ buy['bb_buy'] }}</td>
+                    <td>{{ buy['cmf_buy'] }}</td>
+                    
+                </tr>
+            {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-outbox">
+      <table>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>股票代號</th>
+            <th>股票名稱</th>
+            <th>價格</th>
+            <th>數量</th>
+            <th>買/賣</th>
+            <th>原因</th>
+            <th>使用規則</th>
+            <th>sma_sell</th>
+            <th>rsi_sell </th>
+            <th>bb_sell</th>
+            <th>cmf_sell</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for sell in sell_df %}
+                <tr>
+                    <td>{{ sell['日期'] }}</td>
+                    <td>{{ sell['股票代號'] }}</td>
+                    <td>{{ sell['股票名稱'] }}</td>
+                    <td>{{ sell['價格'] }}</td>
+                    <td>{{ sell['數量'] }}</td>
+                    <td>{{ sell['買/賣'] }}</td>
+                    <td>{{ sell['原因'] }}</td>
+                    <td>{{ sell['使用規則'] }}</td>
+                    <td>{{ sell['sma_sell'] }}</td>
+                    <td>{{ sell['rsi_sell'] }}</td>
+                    <td>{{ sell['bb_sell'] }}</td>
+                    <td>{{ sell['cmf_sell'] }}</td>
+                    
+                </tr>
+            {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+
+
+
+    <script>
+    // 獲取下拉列表和選項列表元素
+    const ruleSelect = document.querySelector('#rule');
+    const optionsSelect = document.querySelector('#options');
+
+    // 監聽下拉列表的 change 事件
+    ruleSelect.addEventListener('change', () => {
+      // 獲取用戶選擇的類別
+      const rule = ruleSelect.value;
+      
+      // 使用 AJAX 向後端發送請求以獲取相應的選項
+      fetch(`/options?rule=${rule}`)
+        .then(response => response.json())
+        .then(options => {
+          // 清空選項列表
+          optionsSelect.innerHTML = '';
+          
+          // 添加新的選項到選項列表中
+          for (const option of options) {
+            const optionElement = document.createElement('option');
+            optionElement.value = option;
+            optionElement.textContent = option;
+            optionsSelect.appendChild(optionElement);
+          }
+        });
+    });
+    </script>
+</body>
+</html>

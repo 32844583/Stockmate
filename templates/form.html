@@ -38,8 +38,9 @@
       <label for="rule">使用規則:</label>
       <select id="rule" name="rule">
           <option value="" selected disabled>我的策略</option>
-          <option value="規則1">規則1</option>
-          <option value="規則2">規則2</option>
+          {% for card in cards %}
+          <option value="{{ card['卡組名稱'] }}">{{ card['卡組名稱'] }}</option>
+          {% endfor %}
       </select>
     </div>
     <div class="form-group submit-btn">

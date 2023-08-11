@@ -6,7 +6,6 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Poppins', sans-serif;
-    transition: all 0.4s ease;;
 }
 
 
@@ -34,7 +33,7 @@ body.dark{
 }
 
 nav{
-    position: fixed;
+    position: sticky;
     top: 0;
     left: 0;
     height: 70px;
