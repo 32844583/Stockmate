@@ -21,7 +21,7 @@
 
 body{
     height: 100vh;
-    background-color: var(--body-color);
+/*    background-color: var(--body-color);*/
 }
 
 body.dark{

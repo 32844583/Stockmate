@@ -1,0 +1,45 @@
+/*  table-outbox
+------------------------------------- */
+.table-outbox {
+  margin: 50px; /* 添加外距 */
+  box-shadow: 0px 35px 50px rgba(27, 31, 49, 0.1); /* 添加表格陰影 */
+}
+
+/*  table
+------------------------------------- */
+.table-outbox table {
+  border-collapse: collapse; /* 表格邊框合併 */
+  width: 100%; /* 寬度 100% */
+  background-color: white; /* 背景白色 */
+}
+
+.table-outbox table thead th {
+  color: #ffffff; /* 表頭文字白色 */
+  background: #7fc3ff; /* 表頭背景白色 */
+}
+
+.table-outbox table td,
+.table-outbox table th {
+  text-align: center; /* 文字置中顯示 */
+  padding: 10px; /* 添加內距 */
+}
+
+.table-outbox table td {
+  border-right: 1px solid #f1f1f1; /* 表格 td 右邊框顏色 */
+}
+
+.table-outbox table tr:nth-child(even) {
+  background: #f8f8f8; /* 表格偶數 tr 灰色背景 */
+}
+.candlestick-chart {
+  margin-left: 2%;
+  margin-top: 3%;
+  float: left;
+  width: 41%;
+}
+.table-outbox {
+  margin-top: 3%;
+  float: left;
+  width: 50%;
+}
+

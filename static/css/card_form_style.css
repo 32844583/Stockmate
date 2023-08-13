@@ -1,0 +1,53 @@
+.btn-group .select {
+position: relative;
+}
+.btn-group .select input:checked + label {
+background-color: #ffc107;
+}
+.btn-group .select input:checked + label:hover, .btn-group .select input:checked + label:focus, .btn-group .select input:checked + label:active {
+background-color: #ffc107;
+}
+.btn-group .select input {
+opacity: 0;
+position: absolute;
+}
+.btn-group .select .button_select {
+margin: 0 10px 10px 0;
+display: flex;
+background-color: transparent;
+}
+.btn-group .select .button_select:hover, .btn-group .select .button_select:focus, .btn-group .select .button_select:active {
+background-color: transparent;
+}
+
+.option {
+position: relative;
+}
+.option input {
+opacity: 0;
+position: absolute;
+}
+.option input:checked + span {
+background-color: #ffc107;
+}
+.option input:checked + span:hover, .option input:checked + span:focus, .option input:checked + span:active {
+background-color: #ffc107;
+}
+.option .btn-option {
+margin: 0 10px 10px 0;
+display: flex;
+background-color: transparent;
+}
+.option .btn-option:hover, .option .btn-option:focus, .option .btn-option:active {
+background-color: transparent;
+}
+
+.rules {
+  float: left;
+  width: 20%;
+}
+
+.container {
+  float: left;
+  width: 80%;
+}

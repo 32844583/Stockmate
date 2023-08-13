@@ -3,7 +3,7 @@
 <head>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/form_style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/table_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index_table_style.css') }}">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
 
@@ -12,17 +12,19 @@
 <body>
     {% include 'navbar.html' %}
 
-    <h1>{{ stock_name }}</h1>
     <form style='display: none;'action="/" method="get">
     <label for="symbol">請輸入股票代碼：</label>
     <input type="text" id="symbol" name="symbol" value="{{ symbol }}">
     <input type="submit" value="查詢">
     </form>
-    <div id="candlestick-chart">{{ plot|safe }}</div>
-    <div id="volume-chart"></div>
-    <h1>{{ stock_name }}交易記錄</h1>
+    <div id="candlestick-chart" class="candlestick-chart">
+        <h1>{{ stock_name }}</h1>
+        {{ plot|safe }}
+    </div>
 
     <div class="table-outbox">
+    <h1>{{ stock_name }}交易記錄</h1>
+
       <table>
         <thead>
           <tr>
@@ -68,11 +70,12 @@
 
         </tbody>
       </table>
+      <button id="showButton">新增交易</button>
+
     </div>
-
-
-    <button id="showButton">新增交易</button>
     {% include 'form.html' %}
+
+
 
 
     <script>

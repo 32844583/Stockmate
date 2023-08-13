@@ -1,0 +1,86 @@
+<div class="container" id="form-{{ amount }}-form" style="display: none;">
+
+<form id='form{{ amount }}' action="{{ url_for('cards') }}" method='post'>
+  <label for="rule_name">卡組名稱:</label>
+  <input type="text" id="rule_name" name="rule_name" required><br>
+    <p>投資期間</p>
+    <div class="btn-group col-xs-12">
+        <label class="option">
+            <input type="radio" value='long' name="term"><span class="btn btn-warning btn-option">長期</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='short' name="term"><span class="btn btn-warning btn-option">短期</span>
+        </label>
+    </div>
+
+    <p>趨勢指標</p>
+    <div class="btn-group col-xs-12">
+        <label class="option">
+            <input type="radio" value='sma' name="trend"><span class="btn btn-warning btn-option">SMA</span>
+        </label>
+
+        <label class="option">
+            <input type="radio" value='ema' name="trend"><span class="btn btn-warning btn-option">EMA</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='wma' name="trend"><span class="btn btn-warning btn-option">WMA</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='hma' name="trend"><span class="btn btn-warning btn-option">HMA</span>
+        </label>
+    </div>
+    <p>震盪指標</p>
+    <div class="btn-group col-xs-12">
+        <label class="option">
+            <input type="radio" value='rsi' name="oscillators"><span class="btn btn-warning btn-option">RSI</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='stoch' name="oscillators"><span class="btn btn-warning btn-option">STOCH</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='cci' name="oscillators" ><span class="btn btn-warning btn-option">CCI</span>
+        </label>
+    </div>
+
+    <p>通道指標</p>
+    <div class="btn-group col-xs-12">
+        <label class="option">
+            <input type="radio" value='bbl' name="volatility" ><span class="btn btn-warning btn-option">BBL</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='kc' name="volatility"><span class="btn btn-warning btn-option">KC</span>
+        </label>        
+    </div>
+
+    <p>能量指標</p>
+    <div class="btn-group col-xs-12">
+        <label class="option">
+            <input type="radio" value='cmf' name="energy" ><span class="btn btn-warning btn-option">CMF</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='mfi' name="energy" ><span class="btn btn-warning btn-option">MFI</span>
+        </label>        
+    </div>
+
+    <p>自定義選項</p>
+    <div class="btn-group col-xs-12" id='custom{{ amount }}'>
+
+    {% for i in range(custom_list|length) %}
+        {% if custom_list[i] != '' %}
+          <div class="select">
+              <input type="checkbox" id="item_{{ i }}" name='item' value="{{ custom_list[i] }}" >
+              <label class="btn btn-warning button_select" for="item_{{ i }}">{{ custom_list[i] }}</label>
+          </div>
+        {% endif %}
+    {% endfor %}
+    </div>
+    <form id="myForm">
+    <input type="text" id="myText{{ amount }}" placeholder="Enter some text">
+    <button type="button" id="myButton" onclick="addOption({{ amount }})">Add</button>
+    </form>
+
+    <div>
+        <button type="submit" onclick="submit_form({{ amount }})">提交</button>
+    </div>
+</form>
+</div>

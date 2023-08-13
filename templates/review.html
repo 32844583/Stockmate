@@ -3,17 +3,19 @@
 <head>
   <title>股票交易檢討系統</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/table_style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 </head>
     {% include 'navbar.html' %}
 
 <body><!-- 下拉列表 -->
-
-    <form action="{{ url_for('review') }}" method='post'>
+<div id="plot"></div>
+    <form action="{{ url_for('review') }}" method='get'>
       <select id="rule" name="rule">
         <option value="" selected disabled>卡組名稱</option>
 
-        {% for trade in trades %}
-        <option value="{{ trade['使用規則'] }}">{{ trade['使用規則'] }}</option>
+        {% for item in items %}
+        <option value="{{ item['使用規則'] }}">{{ item['使用規則'] }}</option>
         {% endfor %}
       </select>
 
@@ -23,7 +25,10 @@
       </select>
       <input type="submit" value="Submit">
   </form>
-    <div class="table-outbox">
+  <h1 id='follow'></h1>
+  <h1 id='violate'></h1>
+
+<!--     <div class="table-outbox">
       <table>
         <thead>
           <tr>
@@ -103,7 +108,7 @@
 
         </tbody>
       </table>
-    </div>
+    </div> -->
 
 
 
@@ -134,5 +139,125 @@
         });
     });
     </script>
+
+<script type="text/javascript">
+    // 從Flask傳遞的數據
+    var data = {{ data|safe }};
+    var trade_data = {{ trade_data|safe }};
+    console.log(data)
+    console.log(trade_data)
+    // 解析JSON字符串為JavaScript對象
+    // data = JSON.parse(data);
+    // trade_data = JSON.parse(trade_data);
+
+    // 使用Plotly.js繪製蠟燭圖和移動平均線
+    var trace1 = {
+        x: data.map(d => d.date),
+        open: data.map(d => d.open),
+        high: data.map(d => d.high),
+        low: data.map(d => d.low),
+        close: data.map(d => d.close),
+        type: 'candlestick',
+        name: '股票價格'
+    };
+
+    var trace2 = {
+        x: data.map(d => d.date),
+        y: data.map(d => d.MA5),
+        type: 'scatter',
+        name: 'MA5'
+    };
+
+    var trace3 = {
+        x: data.map(d => d.date),
+        y: data.map(d => d.MA20),
+        type: 'scatter',
+        name: 'MA20'
+    };
+
+    // 繪製買賣點位
+    var trace4 = {
+        x: trade_data.filter(d => d.type === 'buy').map(d => d.date),
+        y: trade_data.filter(d => d.type === 'buy').map(d => d.price),
+        mode: 'markers',
+        type: 'scatter',
+        name: '買點',
+        marker: {
+            size: 10,
+            color: 'green'
+        },
+        hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
+
+    };
+
+    var trace5 = {
+        x: trade_data.filter(d => d.type === 'sell').map(d => d.date),
+        y: trade_data.filter(d => d.type === 'sell').map(d => d.price),
+        mode: 'markers',
+        type: 'scatter',
+        name: '賣點',
+        marker: {
+            size: 10,
+            color: 'red'
+        },
+        hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
+    };
+
+    var layout = {
+        hovermode:'closest',
+
+        title: '股票價格和移動平均線',
+        xaxis: {
+            title: '日期'
+        },
+        yaxis: {
+            title: '價格' 
+        },
+        // 調整圖表的寬度和高度
+        width: 800,
+        height: 600,
+        // 隱藏sliders
+        sliders: [{
+            visible: false
+        }]
+    };
+
+    Plotly.newPlot('plot', [trace1, trace2, trace3, trace4, trace5], layout);
+    const urlParams = new URLSearchParams(window.location.search);
+    const options = urlParams.get('options');
+    const rule = urlParams.get('rule');
+    var plotDiv = document.getElementById('plot');
+    plotDiv.on('plotly_click', function(data){
+        var point = data.points[0];
+        if (point.data.name === '買點' || point.data.name === '賣點') {
+            // 發送數據到後端
+            fetch('/review', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: point.x,
+                    price: point.y,
+                    type: point.data.name === '買點' ? 'buy' : 'sell',
+                    options: options,
+                    rule: rule,
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 從後端獲取響應並在前端顯示
+                console.log(data);
+                const follow = document.querySelector('#follow');
+                const violate = document.querySelector('#violate');
+                follow.innerHTML = data['遵守']
+                violate.innerHTML = data['違反']
+
+            });
+        }
+    });
+
+
+</script>
 </body>
 </html>
