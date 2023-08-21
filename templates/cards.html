@@ -42,8 +42,11 @@
           <input type="radio" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked/>
         </label>
     </div>
-    <p>投資期間</p>
+    <label class="optest">
+        <input type="radio" disabled><span class="test">投資期間</span>
+    </label>
     <div class="btn-group col-xs-12">
+
         <label class="option">
             <input type="radio" value='long' name="term" {% if 'long' in list %} checked {% endif %}><span class="btn btn-warning btn-option">長期</span>
         </label>
@@ -51,7 +54,10 @@
             <input type="radio" value='short' name="term" {% if 'short' in list %} checked {% endif %}><span class="btn btn-warning btn-option">短期</span>
         </label>
     </div>
-    <p>趨勢指標</p>
+    <p></p>
+    <label class="optest">
+        <input type="radio" disabled><span class="test">趨勢指標</span>
+    </label>
     <div class="btn-group col-xs-12">
         <label class="option">
             <input type="radio" value='sma' name="trend" {% if 'sma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">SMA</span>
@@ -67,7 +73,10 @@
             <input type="radio" value='hma' name="trend" {% if 'hma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">HMA</span>
         </label>
     </div>
-    <p>震盪指標</p>
+    <p></p>
+    <label class="optest">
+        <input type="radio" disabled><span class="test">震盪指標</span>
+    </label>
     <div class="btn-group col-xs-12">
         <label class="option">
             <input type="radio" value='rsi' name="oscillators" {% if 'rsi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">RSI</span>
@@ -79,8 +88,10 @@
             <input type="radio" value='cci' name="oscillators" {% if 'cci' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CCI</span>
         </label>
     </div>
-
-    <p>通道指標</p>
+    <p></p>
+    <label class="optest">
+        <input type="radio" disabled><span class="test">通道指標</span>
+    </label>
     <div class="btn-group col-xs-12">
         <label class="option">
             <input type="radio" value='bbl' name="volatility" {% if 'bbf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">BBL</span>
@@ -89,8 +100,11 @@
             <input type="radio" value='kc' name="volatility" {% if 'kc' in list %} checked {% endif %}><span class="btn btn-warning btn-option">KC</span>
         </label>        
     </div>
+    <p></p>
+    <label class="optest">
+        <input type="radio" disabled><span class="test">能量指標</span>
+    </label>
 
-    <p>能量指標</p>
     <div class="btn-group col-xs-12">
         <label class="option">
             <input type="radio" value='cmf' name="energy" {% if 'cmf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CMF</span>
@@ -99,8 +113,10 @@
             <input type="radio" value='mfi' name="energy" {% if 'mfi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">MFI</span>
         </label>        
     </div>
-
-    <p>自定義選項</p>
+    <p></p>
+    <label class="optest">
+        <input type="radio" disabled><span class="test">自定義選項</span>
+    </label>
     <div class="btn-group col-xs-12" id='custom{{ i }}'>
 
     {% for i in range(custom_list|length) %}
@@ -112,13 +128,14 @@
         {% endif %}
     {% endfor %}
     </div>
+
     <form id="myForm">
     <input type="text" id="myText{{ i }}" placeholder="Enter some text">
-    <button type="button" id="myButton" onclick="addOption({{ i }})">Add</button>
+    <button type="button" id="myButton" class='btn addoption' onclick="addOption({{ i }})">自訂策略</button>
     </form>
-
-    <div>
-        <button type="submit" onclick="submit_form({{ i }})">提交</button>
+    <p></p>
+    <div class='submit-div'>
+        <button type="submit" class='btn submit'onclick="submit_form({{ i }})">提交</button>
     </div>
 </form>
 </div>

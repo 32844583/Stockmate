@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>股票交易檢討系統</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/table_style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+</head>
+    {% include 'navbar.html' %}
+
+<body><!-- 下拉列表 -->
+<div id="plot"></div>
+
+  <h1 id='follow'></h1>
+  <h1 id='violate'></h1>
+<table>
+    <tr>
+        <td>股票名稱</td>
+        <td>{{ review[0]['股票名稱'] }}</td>
+    </tr>
+    <tr>
+        <td>獲利</td>
+        <td id='data2'>{{ review[0]['獲利'] }}</td>
+    </tr>
+    <tr>
+        <td>報酬率</td>
+        <td id='data3'>{{ review[0]['報酬率'] }}</td>
+    </tr>
+    <tr>
+        <td>交易筆數</td>
+        <td id='data4'>{{ review[0]['交易筆數'] }}</td>
+    </tr>
+    <tr>
+        <td>交易期間</td>
+        <td id='data5'>{{ review[0]['交易期間'] }}</td>
+    </tr>
+    <tr>
+        <td>使用策略</td>
+        <td>{{ review[0]['使用規則'] }}</td>
+    </tr>
+</table>
+<table>
+    <tr>
+        <td>價格</td>
+        <td id='price'></td>
+    </tr>
+    <tr>
+        <td>數量</td>
+        <td id='volume'></td>
+    </tr>
+    <tr>
+        <td>交易類型</td>
+        <td id='action'></td>
+    </tr>
+    <tr>
+        <td>日期</td>
+        <td id='date'></td>
+    </tr>
+</table>
+<form action="{{ url_for('edit_review', review_id=review[0]['review_id']) }}" method="post" >
+    <div class="btn-group col-xs-12">
+
+        <label class="option">
+            <input type="radio" value='finished' name="status" {% if review[0]['狀態'] == 'finished' %} checked {% endif %}><span class="btn btn-warning btn-option">完成</span>
+        </label>
+        <label class="option">
+            <input type="radio" value='unfinished' name="status"{% if review[0]['狀態'] == 'unfinished' %} checked {% endif %}><span class="btn btn-warning btn-option">未完成</span>
+        </label>
+    </div>
+  <input type="hidden" id="stock_name" name="stock_name" value='{{ option }}'>
+  <input type="hidden" id="profit" name="profit">
+  <input type="hidden" id="ratio" name="ratio">
+  <input type="hidden" id="number" name="number">
+  <input type="hidden" id="duration" name="duration">
+  <input type="hidden" id="rule" name="rule" value='{{ rule }}'>
+
+
+  <label for="myTextarea">輸入文字:</label><br>
+  <textarea id="myTextarea" name="myTextarea" rows="4" cols="50">{{ review[0]['結論'] }}</textarea><br><br>
+  <input type="submit" value="提交">
+</form>
+<div id='update_custom'>
+</div>
+<form action="/update_custom" method="POST">
+
+  <input type="hidden" id="hiddenDate" name="date">
+  <input type="hidden" id="hiddenPrice" name="price">
+  <input type="hidden" id="hiddenAction" name="action">
+  <input type="submit" value="提交">
+</form>
+
+
+<script type="text/javascript">
+    // 從Flask傳遞的數據
+    var data = {{ data|safe }};
+    var trade_data = {{ trade_data|safe }};
+    console.log(data)
+    console.log(trade_data)
+    // 解析JSON字符串為JavaScript對象
+    // data = JSON.parse(data);
+    // trade_data = JSON.parse(trade_data);
+
+    // 使用Plotly.js繪製蠟燭圖和移動平均線
+    var trace1 = {
+        x: data.map(d => d.date),
+        open: data.map(d => d.open),
+        high: data.map(d => d.high),
+        low: data.map(d => d.low),
+        close: data.map(d => d.close),
+        type: 'candlestick',
+        name: '股票價格'
+    };
+
+    var trace2 = {
+        x: data.map(d => d.date),
+        y: data.map(d => d.MA5),
+        type: 'scatter',
+        name: 'MA5'
+    };
+
+    var trace3 = {
+        x: data.map(d => d.date),
+        y: data.map(d => d.MA20),
+        type: 'scatter',
+        name: 'MA20'
+    };
+
+    // 繪製買賣點位
+    var trace4 = {
+        x: trade_data.filter(d => d.type === 'buy').map(d => d.date),
+        y: trade_data.filter(d => d.type === 'buy').map(d => d.price),
+        text: trade_data.filter(d => d.type === 'sell').map(d => d.volume), // 添加成交量信息
+        mode: 'markers',
+        type: 'scatter',
+        name: '買點',
+        marker: {
+            size: 10,
+            color: 'green'
+        },
+        hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
+
+    };
+
+    var trace5 = {
+        x: trade_data.filter(d => d.type === 'sell').map(d => d.date),
+        y: trade_data.filter(d => d.type === 'sell').map(d => d.price),
+        text: trade_data.filter(d => d.type === 'sell').map(d => d.volume), // 添加成交量信息
+        mode: 'markers',
+        type: 'scatter',
+        name: '賣點',
+        marker: {
+            size: 10,
+            color: 'red'
+        },
+        hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
+    };
+
+    var layout = {
+        hovermode:'closest',
+
+        title: '股票價格和移動平均線',
+        xaxis: {
+            title: '日期'
+        },
+        yaxis: {
+            title: '價格' 
+        },
+        // 調整圖表的寬度和高度
+        width: 800,
+        height: 600,
+        // 隱藏sliders
+        sliders: [{
+            visible: false
+        }]
+    };
+
+    Plotly.newPlot('plot', [trace1, trace2, trace3, trace4, trace5], layout);
+    var plotDiv = document.getElementById('plot');
+    plotDiv.on('plotly_click', function(data){
+        var point = data.points[0];
+        if (point.data.name === '買點' || point.data.name === '賣點') {
+            document.getElementById("date").innerHTML = point.x;
+            document.getElementById("action").innerHTML = point.data.name ;
+            document.getElementById("price").innerHTML = point.y;
+            document.getElementById("volume").innerHTML = point.text;
+            fetch('/check_point', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    date: point.x,
+                    price: point.y,
+                    type: point.data.name === '買點' ? 'buy' : 'sell',
+                    option: "{{option}}",
+                    rule: "{{rule}}",
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 從後端獲取響應並在前端顯示
+                console.log(data);
+                const follow = document.querySelector('#follow');
+                const violate = document.querySelector('#violate');
+                follow.innerHTML = data['遵守']
+                violate.innerHTML = data['違反']
+                // stay = String(data['待決定']).split("-");
+                stay = data['待決定']
+                let form = document.querySelector('form[action="/update_custom"]');
+                let submit = document.createElement('input');
+                submit.type = 'submit';
+                while (form.firstChild) {
+                    form.removeChild(form.firstChild);
+                }
+
+
+                // 創建第一個隱藏輸入字段
+                var input1 = document.createElement('input');
+                input1.type = 'hidden';
+                input1.id = 'hiddenDate';
+                input1.name = 'date';
+                form.appendChild(input1); // 將輸入字段添加到表單中
+
+                // 創建第二個隱藏輸入字段
+                var input2 = document.createElement('input');
+                input2.type = 'hidden';
+                input2.id = 'hiddenPrice';
+                input2.name = 'price';
+                form.appendChild(input2); // 將輸入字段添加到表單中
+
+                // 創建第三個隱藏輸入字段
+                var input3 = document.createElement('input');
+                input3.type = 'hidden';
+                input3.id = 'hiddenAction';
+                input3.name = 'action';
+                form.appendChild(input3); // 將輸入字段添加到表單中
+
+                for (let custom of stay) {
+                    let label = document.createElement('label');
+                    label.setAttribute('for', custom);
+                    label.textContent = custom + ':';
+                    form.appendChild(label);
+
+                    let select = document.createElement('select');
+                    select.id = custom;
+                    select.name = custom;
+                    let option1 = document.createElement('option');
+                    option1.value = '遵守';
+                    option1.textContent = '遵守';
+                    select.appendChild(option1);
+
+                    let option2 = document.createElement('option');
+                    option2.value = '違規';
+                    option2.textContent = '違規';
+                    select.appendChild(option2);
+                    form.appendChild(select);
+
+                    form.appendChild(document.createElement('br'));
+
+                }
+                form.appendChild(submit);
+
+            });
+            document.getElementById("hiddenDate").value = document.getElementById("date").innerHTML;
+            document.getElementById("hiddenPrice").value = document.getElementById("price").innerHTML;
+            document.getElementById("hiddenAction").value = document.getElementById("action").innerHTML;
+
+        }
+    });
+    window.onload = function() {
+        var profit = document.getElementById("data2").innerHTML;
+        document.getElementById("profit").value = profit;
+        var ratio = document.getElementById("data3").innerHTML;
+        document.getElementById("ratio").value = ratio;
+        var number = document.getElementById("data4").innerHTML;
+        document.getElementById("number").value = number;
+        var duration = document.getElementById("data5").innerHTML;
+        document.getElementById("duration").value = duration;
+
+  }
+
+</script>
+</body>
+</html>

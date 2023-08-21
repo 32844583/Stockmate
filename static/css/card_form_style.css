@@ -1,5 +1,4 @@
 .btn-group .select {
-position: relative;
 }
 .btn-group .select input:checked + label {
 background-color: #ffc107;
@@ -34,7 +33,7 @@ background-color: #ffc107;
 background-color: #ffc107;
 }
 .option .btn-option {
-margin: 0 10px 10px 0;
+margin: 10px 10px 10px 0;
 display: flex;
 background-color: transparent;
 }
@@ -42,12 +41,39 @@ background-color: transparent;
 background-color: transparent;
 }
 
-.rules {
-  float: left;
-  width: 20%;
+
+.test{
+	position: relative;
+	color: white;
+	display: flex;
+	background-color: #FF8000 !important;
+	margin-right: 10px;
+}
+.optest{
+	position: relative;
+
+}
+.optest span{
+	padding-top: 10px;
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-bottom: 7.5px;
+
+
+}
+input[type="radio"] {
+    display: none;
 }
 
-.container {
-  float: left;
-  width: 80%;
+.btn.addoption{
+	background-color: blue;
+	color: white;
 }
+.btn.submit{
+	background-color: blue;
+	color: white;
+}
+.submit-div{
+	padding-left: 18vw;
+}
+

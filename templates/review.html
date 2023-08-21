@@ -9,8 +9,54 @@
     {% include 'navbar.html' %}
 
 <body><!-- 下拉列表 -->
-<div id="plot"></div>
-    <form action="{{ url_for('review') }}" method='get'>
+    <div class="table-outbox">
+    <h1>績效報表總攬</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>交易期間</th>
+            <th>股票名稱</th>
+            <th>獲利</th>
+            <th>報酬率</th>
+            <th>交易筆數</th>
+            <th>狀態</th>
+            <th>使用規則</th>
+            <th>編輯</th>
+            <th>刪除</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for review in reviews %}
+                <tr>
+                    <td>{{ review['交易期間'] }}</td>
+                    <td>{{ review['股票名稱'] }}</td>
+                    <td>{{ review['獲利'] }}</td>
+                    <td>{{ review['報酬率'] }}</td>
+                    <td>{{ review['交易筆數'] }}</td>
+                    <td>{{ review['狀態'] }}</td>
+                    <td>{{ review['使用規則'] }}</td>
+                    <td>
+                        <form action="{{ url_for('add_review', review_id=review['review_id']) }}" method="get">
+                            <!-- 創建一個按鈕 -->
+                            <input type="submit" value="編輯交易">
+                        </form>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('delete_review', review_id=review['review_id']) }}" method="get">
+                            <!-- 創建一個按鈕 -->
+                            <input type="submit" value="刪除交易">
+                        </form>
+                    </td>
+                    
+                    
+                </tr>
+            {% endfor %}
+
+        </tbody>
+      </table>
+      
+    </div>
+    <form action="{{ url_for('add_review') }}" method='get'>
       <select id="rule" name="rule">
         <option value="" selected disabled>卡組名稱</option>
 
@@ -25,91 +71,6 @@
       </select>
       <input type="submit" value="Submit">
   </form>
-  <h1 id='follow'></h1>
-  <h1 id='violate'></h1>
-
-<!--     <div class="table-outbox">
-      <table>
-        <thead>
-          <tr>
-            <th>日期</th>
-            <th>股票代號</th>
-            <th>股票名稱</th>
-            <th>價格</th>
-            <th>數量</th>
-            <th>買/賣</th>
-            <th>原因</th>
-            <th>使用規則</th>
-            <th>sma_buy</th>
-            <th>rsi_buy </th>
-            <th>bb_buy</th>
-            <th>cmf_buy</th>
-          </tr>
-        </thead>
-        <tbody>
-            {% for buy in buy_df %}
-                <tr>
-                    <td>{{ buy['日期'] }}</td>
-                    <td>{{ buy['股票代號'] }}</td>
-                    <td>{{ buy['股票名稱'] }}</td>
-                    <td>{{ buy['價格'] }}</td>
-                    <td>{{ buy['數量'] }}</td>
-                    <td>{{ buy['買/賣'] }}</td>
-                    <td>{{ buy['原因'] }}</td>
-                    <td>{{ buy['使用規則'] }}</td>
-                    <td>{{ buy['sma_buy'] }}</td>
-                    <td>{{ buy['rsi_buy'] }}</td>
-                    <td>{{ buy['bb_buy'] }}</td>
-                    <td>{{ buy['cmf_buy'] }}</td>
-                    
-                </tr>
-            {% endfor %}
-
-        </tbody>
-      </table>
-    </div>
-
-    <div class="table-outbox">
-      <table>
-        <thead>
-          <tr>
-            <th>日期</th>
-            <th>股票代號</th>
-            <th>股票名稱</th>
-            <th>價格</th>
-            <th>數量</th>
-            <th>買/賣</th>
-            <th>原因</th>
-            <th>使用規則</th>
-            <th>sma_sell</th>
-            <th>rsi_sell </th>
-            <th>bb_sell</th>
-            <th>cmf_sell</th>
-          </tr>
-        </thead>
-        <tbody>
-            {% for sell in sell_df %}
-                <tr>
-                    <td>{{ sell['日期'] }}</td>
-                    <td>{{ sell['股票代號'] }}</td>
-                    <td>{{ sell['股票名稱'] }}</td>
-                    <td>{{ sell['價格'] }}</td>
-                    <td>{{ sell['數量'] }}</td>
-                    <td>{{ sell['買/賣'] }}</td>
-                    <td>{{ sell['原因'] }}</td>
-                    <td>{{ sell['使用規則'] }}</td>
-                    <td>{{ sell['sma_sell'] }}</td>
-                    <td>{{ sell['rsi_sell'] }}</td>
-                    <td>{{ sell['bb_sell'] }}</td>
-                    <td>{{ sell['cmf_sell'] }}</td>
-                    
-                </tr>
-            {% endfor %}
-
-        </tbody>
-      </table>
-    </div> -->
-
 
 
     <script>
@@ -140,124 +101,6 @@
     });
     </script>
 
-<script type="text/javascript">
-    // 從Flask傳遞的數據
-    var data = {{ data|safe }};
-    var trade_data = {{ trade_data|safe }};
-    console.log(data)
-    console.log(trade_data)
-    // 解析JSON字符串為JavaScript對象
-    // data = JSON.parse(data);
-    // trade_data = JSON.parse(trade_data);
 
-    // 使用Plotly.js繪製蠟燭圖和移動平均線
-    var trace1 = {
-        x: data.map(d => d.date),
-        open: data.map(d => d.open),
-        high: data.map(d => d.high),
-        low: data.map(d => d.low),
-        close: data.map(d => d.close),
-        type: 'candlestick',
-        name: '股票價格'
-    };
-
-    var trace2 = {
-        x: data.map(d => d.date),
-        y: data.map(d => d.MA5),
-        type: 'scatter',
-        name: 'MA5'
-    };
-
-    var trace3 = {
-        x: data.map(d => d.date),
-        y: data.map(d => d.MA20),
-        type: 'scatter',
-        name: 'MA20'
-    };
-
-    // 繪製買賣點位
-    var trace4 = {
-        x: trade_data.filter(d => d.type === 'buy').map(d => d.date),
-        y: trade_data.filter(d => d.type === 'buy').map(d => d.price),
-        mode: 'markers',
-        type: 'scatter',
-        name: '買點',
-        marker: {
-            size: 10,
-            color: 'green'
-        },
-        hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
-
-    };
-
-    var trace5 = {
-        x: trade_data.filter(d => d.type === 'sell').map(d => d.date),
-        y: trade_data.filter(d => d.type === 'sell').map(d => d.price),
-        mode: 'markers',
-        type: 'scatter',
-        name: '賣點',
-        marker: {
-            size: 10,
-            color: 'red'
-        },
-        hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
-    };
-
-    var layout = {
-        hovermode:'closest',
-
-        title: '股票價格和移動平均線',
-        xaxis: {
-            title: '日期'
-        },
-        yaxis: {
-            title: '價格' 
-        },
-        // 調整圖表的寬度和高度
-        width: 800,
-        height: 600,
-        // 隱藏sliders
-        sliders: [{
-            visible: false
-        }]
-    };
-
-    Plotly.newPlot('plot', [trace1, trace2, trace3, trace4, trace5], layout);
-    const urlParams = new URLSearchParams(window.location.search);
-    const options = urlParams.get('options');
-    const rule = urlParams.get('rule');
-    var plotDiv = document.getElementById('plot');
-    plotDiv.on('plotly_click', function(data){
-        var point = data.points[0];
-        if (point.data.name === '買點' || point.data.name === '賣點') {
-            // 發送數據到後端
-            fetch('/review', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    date: point.x,
-                    price: point.y,
-                    type: point.data.name === '買點' ? 'buy' : 'sell',
-                    options: options,
-                    rule: rule,
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // 從後端獲取響應並在前端顯示
-                console.log(data);
-                const follow = document.querySelector('#follow');
-                const violate = document.querySelector('#violate');
-                follow.innerHTML = data['遵守']
-                violate.innerHTML = data['違反']
-
-            });
-        }
-    });
-
-
-</script>
 </body>
 </html>
