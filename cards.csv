@@ -2,5 +2,5 @@
 0,2,我的策略一,short-wma-cci- -mfi-custom-穿越季線-穿越半年線
 1,2,我的策略二,short-sma-stoch-kc-cmf-custom-穿越半年線
 2,2,我的策略三, - - - - -custom-
-3,2,我的策略四,cat-dog-custom-
+3,2,我的策略四, - - - - -custom-RSI>80賣出RSI<20買入
 4,2,我的策略五, - - - - -custom-10MA周線

@@ -6,157 +6,196 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/review_form_style.css') }}">
+
 
     <!----======== CSS ======== -->
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/temp_style.css') }}">
 
     <!----===== Iconscout CSS ===== -->
-    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+    <!-- <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css"> -->
 
     <title>績效報表</title> 
-
 
 </head>
 <body>
     {% include 'navbar.html' %}
-
-
+    <div class='grid-container'>
+<div class="graph1">
+    <h3>交易波段圖</h3>
+    <div id="plot"></div>
+</div>
+<div class="graph2">
+    <h3>執行分析圖</h3>
+    <div>{{ fig|safe }}</div>
+</div>
+<div class="block1">
+    <div class="title">
+        <h3>股票基本資料</h3>
+    </div>
+    <div class="content">
+    <table class="profile-table">
+    <tr>
+        <td>股票名稱</td>
+            <td>{{ basic_info['股票名稱'] }}</td>
+    </tr>
+    <tr>
+        <td>獲利</td>
+            <td id='data2'>{{ basic_info['獲利'] }}</td>
+    </tr>
+    <tr>
+        <td>報酬率</td>
+            <td id='data3'>{{ basic_info['報酬率']|round(3) }}</td>
+    </tr>
+    <tr>
+        <td>交易筆數</td>
+            <td id='data4'>{{ basic_info['交易筆數'] }}</td>
+    </tr>
+    <tr>
+        <td>交易期間</td>
+            <td id='data5'>{{ basic_info['交易期間'] }}</td>
+    </tr>
+    <tr>
+        <td>使用策略</td>
+            <td>{{ basic_info['使用規則'] }}</td>
+    </tr>
+</table>
+    </div>
+    <div class="button">
+    </div>
 
 </div>
 
-
-    <section class="dashboard">
-        <div class="dash-content">
-            <div class="overview">
-                <div class="title">
-                    <i class="uil uil-scenery"></i>
-                    Graph
-                </div>
-
-                <div class="graphs">
-                    <div id="plot" class="graph graph1">
-                        
-
-                    </div>
-                    <div class="graph graph2">
-                        
-
-                    </div>
-                </div>   
+<div class="block2">
+    <div class="title">
+        <h3>點位資料</h3>
+    </div>
+    <div class="content">
+        <table class="point-table">
+            <tr>
+            <td>價格</td>
+            <td id='price'></td>
+            </tr>
+            <tr>
+            <td>數量</td>
+            <td id='volume'></td>
+            </tr>
+            <tr>
+            <td>交易類型</td>
+            <td id='action'></td>
+            </tr>
+            <tr>
+            <td>日期</td>
+            <td id='date'></td>
+            </tr>
+        </table>
+    </div>
+    <div class="button">
+    </div>
+</div>
+<div class="block3">
+    <div class="title">
+        <h3>系統檢測結果</h3>
+    </div>
+    <div class="content">
+        <div class="follow" id="follow">
+<!--             <div class="item">
+                <span class="checkmark">✔</span>
+                項目1
+            </div>
+            <div class="item">
+                <span class="checkmark">✔</span>
+                項目2
+            </div> -->
         </div>
+        <div class="violate" id="violate">
+<!--             <div class="item">
+                <span class="cross">✘</span>
+                項目1
+            </div>
+            <div class="item">
+                <span class="cross">✘</span>
+                項目2
+            </div> -->
+        </div>
+    </div>
+    <div class="button">
+    </div>
+</div>
+<div class="block5">
+    <form id="custom_indicator" action="/update_custom" method="POST">
+        <div class="title">
+            <h3>自訂項目</h3>
+        </div>
+
+        <div class="content">
+<!--             <div class="item">
+                <label>
+                    <input type="radio" name="item1" class="checkmark-radio">
+                    <span>✔</span>
+                </label>
+                <label>
+                    <input type="radio" name="item1" class="cross-radio">
+                    <span>✘</span>
+                </label>
+                項目1
+            </div>
+            <div class="item">
+                <label>
+                    <input type="radio" name="item2" class="checkmark-radio">
+                    <span>✔</span>
+                </label>
+                <label>
+                    <input type="radio" name="item2" class="cross-radio">
+                    <span>✘</span>
+                </label>
+                項目2
+            </div> -->
+        </div>
+        <div class="button">
+            <input type="submit" value="更新" class="submit-button">
+        </div>
+    </form>
+
+</div>
+<div class="block6">
+    <form action="{{ url_for('update_review') }}" method="post" >
+    <div class="title">
+          <label for="myTextarea"><h3>結論</h3></label>
+    </div>
+    <div class="content">
+
+
+{% if review %}
+    <textarea class="textarea" name="myTextarea" rows="4">{{ review[0]['結論'] }}</textarea><br>
+{% else %}
+        <textarea class="textarea" name="myTextarea" rows="4"></textarea><br>
+{% endif %}
+
         
-        <!--list 分列-->
-        <div class="activity">
-            <div class="title">
-                <i class="uil uil-label-alt"></i>
-                Information
-            </div>
-    <!--list 細節-->
-            <div class="activity-data">
-                <!--表1-->
-                <div class="data names"> 
-                    <span>股票名稱</span>
-                    <span>{{ option }}</span>
-                </div>
-                <div class="data profit">
-                    <span>獲利</span>
-                    <span id='data2'>{{ basic_info['獲利'] }}</span>
-                </div>
-                <div class="data rate of return">
-                    <span >報酬率</span>
-                    <span id='data3'>{{ basic_info['報酬率']| round(3) }}</span>
-                </div>
-                <div class="data trade number">
-                    <span >交易比數</span>
-                    <span id='data4'>{{ basic_info['交易筆數'] }}</span>
-                </div>
-                <div class="data period">
-                    <span>交易期間</span>
-                    <span id='data5'>{{ basic_info['交易期間'] }}</span>
-                </div>
-                <div class="data strategy">
-                    <span>使用策略</span>
-                    <span>{{ rule }}</span>
-                </div>
+    </div>
+    <div class="button">
+            <input type="submit" value="提交" class="submit-button">
+<!--             <div class="btn-group col-xs-12">
+                <label class="option">
+                    <input type="radio" value='finished' name="status" {% if basic_info['狀態'] == 'finished' %} checked {% endif %}><span class="btn btn-warning btn-option">完成</span>
+                </label>
+                <label class="option">
+                    <input type="radio" value='unfinished' name="status"{% if basic_info['狀態'] == 'unfinished' %} checked {% endif %}><span class="btn btn-warning btn-option">未完成</span>
+                </label>
+            </div> -->
+    </div>
+    </form>
+</div>
+</div>
+        
 
 
-                <div class="data price">
-                    <span>價格</span>
-                    <span id='price'></span>
-                </div>
-                <div class="data quantity">
-                    <span>數量</span>
-                    <span id='volume'></span>
-                </div>
-                <div class="data sold point">
-                    <span>交易類型賣點</span>
-                    <span  id='action'></span>
-                </div>
-                <div class="data date">
-                    <span>日期</span>
-                    <span  id='date'></span>
-                </div> 
-            </div>
-        </div>
-        <!--dashboard 分列-->
-        <div class="dash-content">
-            <div class="overview">
-                <div class="title">
-                    <i class="uil uil-tachometer-fast-alt"></i>
-                    <span>Dashboard</span>
-                </div>
-        <!--遵守(紅)、違反(綠)、違反判斷(灰)-->
-                <div class="boxes">
-                    <div class="box box1">
-                        <i id="follow" class="uil uil-check"></i>
-
-                    </div>
-                    <div class="box box2">
-                        <i id="violate" class="uil uil-times"></i>
-
-                    </div>
-                    <div class="box box3">
-                        <i class="uil  uil-question-circle"></i>
-                        <!--穿越季線(含下拉式選單)-->
-
-                        <form action="/update_custom" method="POST">
-
-                        </form>
-
-                    </div>
-                    <div class="box box4">
-                        <form action="{{ url_for('update_review') }}" method="post" >
-                          <input type="hidden" id="stock_name" name="stock_name" value='{{ option }}'>
-                          <input type="hidden" id="profit" name="profit">
-                          <input type="hidden" id="ratio" name="ratio">
-                          <input type="hidden" id="number" name="number">
-                          <input type="hidden" id="duration" name="duration">
-                          <input type="hidden" id="rule" name="rule" value='{{ rule }}'>
-                          <i class="uil  uil-lightbulb-alt"></i>
-                            <span class="text">Ideas</span>
-                        <div>
-                            <label class="option">
-                                <input type="radio" value='finished' name="status"><span class="btn btn-warning btn-option">完成</span>
-                            </label>
-                            <label class="option">
-                                <input type="radio" value='unfinished' name="status"><span class="btn btn-warning btn-option">未完成</span>
-                            </label>
-                        </div>
-
-                          <label for="myTextarea">輸入文字:</label><br>
-                          <textarea  style="width: 300px;" id="myTextarea" name="myTextarea" rows="4" cols="50"></textarea><br><br>
-                          <input type="submit" value="提交">
-
-                        </form>
-                    </div>
-                </div>
-            </div>
-                        
-            </div>
-        </div>
-    </section>
-            
+<input type="hidden" id="stock_name" name="stock_name" value='{{ option }}'>
+<input type="hidden" id="profit" name="profit">
+<input type="hidden" id="ratio" name="ratio">
+<input type="hidden" id="number" name="number">
+<input type="hidden" id="duration" name="duration">
+<input type="hidden" id="rule" name="rule" value='{{ rule }}'>
     <script type="text/javascript">
         // 從Flask傳遞的數據
         var data = {{ data|safe }};
@@ -204,7 +243,7 @@
                 size: 10,
                 color: 'green'
             },
-            hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
+            hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><br>%{text}<extra></extra>',
 
         };
 
@@ -219,7 +258,7 @@
                 size: 10,
                 color: 'red'
             },
-            hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><extra></extra>',
+            hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><br>%{text}<extra></extra>',
         };
 
         var layout = {
@@ -235,10 +274,16 @@
                 title: '價格' 
             },
             // 調整圖表的寬度和高度
-            width: 800,
-            height: 600,
-            // 隱藏sliders
-            sliders: [{
+            width: 550,
+            height: 400,
+            margin: {
+                l: 50, // 左邊距
+                r: 50, // 右邊距
+                b: 100, // 下邊距
+                t: 100, // 上邊距
+                pad: 4 // 邊框與繪圖區域之間的額外空間
+            },
+                sliders: [{
                 visible: false
             }]
         };
@@ -266,47 +311,121 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // 從後端獲取響應並在前端顯示
-                    console.log(data);
-                    console.log(data['違反'])
-                    var violateElement = document.getElementById('violate');
-                    while (violateElement.nextSibling) {
-                        violateElement.nextSibling.remove();
-                    }
 
-                    data['違反'].forEach(function(item) {
-                        if(item != 'nan'){
-                        var newItem = document.createElement('b');
-                        newItem.textContent = item;
-                        violateElement.parentNode.insertBefore(newItem, violateElement.nextSibling);
-                        }
-                    });
-                    var followElement = document.getElementById('follow');
-                    while (followElement.nextSibling) {
-                        followElement.nextSibling.remove();
+                    var follow = document.getElementById('follow');
+                    while (follow.firstChild) {
+                        follow.removeChild(follow.firstChild);
                     }
-                    data['遵守'].forEach(function(item) {
+                    data['系統遵守'].forEach(item => {
                         if(item != 'nan'){
-                        var newItem = document.createElement('b');
-                        newItem.textContent = item;
-                        followElement.parentNode.insertBefore(newItem, followElement.nextSibling);
+                        const itemDiv = document.createElement('div');
+                        itemDiv.classList.add('item');
+
+                        const checkmarkSpan = document.createElement('span');
+                        checkmarkSpan.classList.add('checkmark');
+                        checkmarkSpan.textContent = '✔';
+
+                        itemDiv.appendChild(checkmarkSpan);
+                        itemDiv.appendChild(document.createTextNode(item));
+
+                        follow.appendChild(itemDiv);
+                        }
+
+
+                    });
+
+                    var violate = document.getElementById('violate');
+                    while (violate.firstChild) {
+                        violate.removeChild(violate.firstChild);
+                    }
+                    data['系統違反'].forEach(item => {
+                        if(item != 'nan'){
+                        const itemDiv = document.createElement('div');
+                        itemDiv.classList.add('item');
+
+                        const checkmarkSpan = document.createElement('span');
+                        checkmarkSpan.classList.add('cross');
+                        checkmarkSpan.textContent = '✘';
+
+                        itemDiv.appendChild(checkmarkSpan);
+                        itemDiv.appendChild(document.createTextNode(item));
+
+                        violate.appendChild(itemDiv);
+                        }
+
+
+                    });
+                    let form = document.getElementById('custom_indicator');
+                    var content = document.querySelector('.block5 .content');
+                    while (content.firstChild) {
+                        content.removeChild(content.firstChild);
+                    }
+                    data['待決定'].forEach(function(itemName) {
+                        if(itemName != 'nan' &&  itemName != ''){
+                        var item = document.createElement('div');
+                        item.className = 'item';
+                        item.innerHTML = `
+                            <label>
+                                <input type="radio" name="${itemName}" value="遵守" class="checkmark-radio">
+                                <span>✔</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="${itemName}" value="違反" class="cross-radio">
+                                <span>✘</span>
+                            </label>
+                            ${itemName}
+                        `;
+                        content.appendChild(item);
                         }
                     });
-                    // stay = String(data['待決定']).split("-");
-                    stay = data['待決定']
-                    let form = document.querySelector('form[action="/update_custom"]');
+                    data['遵守'].forEach(function(itemName) {
+                        if(itemName != 'nan' && itemName != ''){
+                        var item = document.createElement('div');
+                        item.className = 'item';
+                        item.innerHTML = `
+                            <label>
+                                <input type="radio" name="${itemName}" value="遵守" class="checkmark-radio" checked>
+                                <span>✔</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="${itemName}" value="違反" class="cross-radio">
+                                <span>✘</span>
+                            </label>
+                            ${itemName}
+                        `;
+                        content.appendChild(item);
+                        }
+                    });
+                    data['違反'].forEach(function(itemName) {
+                        if(itemName != 'nan' &&  itemName != ''){
+                        var item = document.createElement('div');
+                        item.className = 'item';
+                        item.innerHTML = `
+                            <label>
+                                <input type="radio" name="${itemName}" value="遵守" class="checkmark-radio" >
+                                <span>✔</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="${itemName}" value="違反" class="cross-radio" checked>
+                                <span>✘</span>
+                            </label>
+                            ${itemName}
+                        `;
+                        content.appendChild(item);
+                        }
+                    });
+
                     let submit = document.createElement('input');
                     submit.type = 'submit';
-                    while (form.firstChild) {
-                        form.removeChild(form.firstChild);
-                    }
+                    console.log("form", form)
+
                     // 創建第一個隱藏輸入字段
                     var input1 = document.createElement('input');
                     input1.type = 'hidden';
                     input1.id = 'hiddenDate';
                     input1.name = 'date';
                     input1.value = document.getElementById("date").innerHTML;
-                    form.appendChild(input1); // 將輸入字段添加到表單中
+                    content.appendChild(input1); // 將輸入字段添加到表單中
 
                     // 創建第二個隱藏輸入字段
                     var input2 = document.createElement('input');
@@ -314,8 +433,7 @@
                     input2.id = 'hiddenPrice';
                     input2.name = 'price';
                     input2.value = document.getElementById("price").innerHTML;
-
-                    form.appendChild(input2); // 將輸入字段添加到表單中
+                    content.appendChild(input2); // 將輸入字段添加到表單中
 
                     // 創建第三個隱藏輸入字段
                     var input3 = document.createElement('input');
@@ -323,7 +441,7 @@
                     input3.id = 'hiddenAction';
                     input3.name = 'action';
                     input3.value = document.getElementById("action").innerHTML;
-                    form.appendChild(input3); // 將輸入字段添加到表單中
+                    content.appendChild(input3); // 將輸入字段添加到表單中
 
                     for (let custom of stay) {
                         if(custom != 'nan'){
@@ -348,8 +466,6 @@
 
                         form.appendChild(document.createElement('br'));
                         }
-
-
                     }
                     form.appendChild(submit);
 

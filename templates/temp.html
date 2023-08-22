@@ -6,147 +6,212 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/review_form_style.css') }}">
+
 
     <!----======== CSS ======== -->
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/temp_style.css') }}">
 
     <!----===== Iconscout CSS ===== -->
-    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+    <!-- <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css"> -->
 
     <title>績效報表</title> 
-<style>
-.grid-container {
-display: grid;
-grid-template-columns: auto auto auto auto auto auto auto auto;
-grid-template-rows: auto auto auto auto auto auto;
-gap: 10px;
-grid-template-areas:
-" graph1 graph1 graph1 graph1 block1 block1 block2 block2"
-" graph1 graph1 graph1 graph1 block1 block1 block2 block2"
-" graph1 graph1 graph1 graph1 block3 block3 block4 block4"
-" graph2 graph2 graph2 graph2 block3 block3 block4 block4"
-" graph2 graph2 graph2 graph2 block5 block5 block6 block6"
-" graph2 graph2 graph2 graph2 block5 block5 block6 block6";
-}
 
-.graph1{
-    grid-area: graph1;
-}
-.graph2{
-    grid-area: graph2;
-}
-.block1{
-    grid-area: block1;
-}
-.block2{
-    grid-area: block2;
-}
-.block3{
-    grid-area: block3;
-}
-.block4{
-    grid-area: block4;
-}
-.block5{
-    grid-area: block5;
-}
-.block6{
-    grid-area: block6;
-}
-</style>
 </head>
-<body style="background-color: black;">
+<body>
     {% include 'navbar.html' %}
     <div class='grid-container'>
 <div class="graph1">
+    <h3>交易波段圖</h3>
     <div id="plot"></div>
 </div>
 <div class="graph2">
+    <h3>執行分析圖</h3>
     <div>{{ fig|safe }}</div>
 </div>
 <div class="block1">
-    <table>
-        <tr>
-            <td>股票名稱</td>
+    <div class="title">
+        <h3>股票基本資料</h3>
+    </div>
+    <div class="content">
+    <table class="profile-table">
+    <tr>
+        <td>股票名稱</td>
+        {% if review %}
             <td>{{ review[0]['股票名稱'] }}</td>
-        </tr>
-        <tr>
-            <td>獲利</td>
+        {% else %}
+            <td>{{ option }}</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <td>獲利</td>
+        {% if review %}
             <td id='data2'>{{ review[0]['獲利'] }}</td>
-        </tr>
-        <tr>
-            <td>報酬率</td>
+        {% else %}
+            <td id='data2'>{{ basic_info['獲利'] }}</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <td>報酬率</td>
+        {% if review %}
             <td id='data3'>{{ review[0]['報酬率'] }}</td>
-        </tr>
-        <tr>
-            <td>交易筆數</td>
+        {% else %}
+            <td id='data3'>{{ basic_info['報酬率'] }}</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <td>交易筆數</td>
+        {% if review %}
             <td id='data4'>{{ review[0]['交易筆數'] }}</td>
-        </tr>
-        <tr>
-            <td>交易期間</td>
+        {% else %}
+            <td id='data4'>{{ basic_info['交易筆數'] }}</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <td>交易期間</td>
+        {% if review %}
             <td id='data5'>{{ review[0]['交易期間'] }}</td>
-        </tr>
-        <tr>
-            <td>使用策略</td>
+        {% else %}
+            <td id='data5'>{{ basic_info['交易期間'] }}</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <td>使用策略</td>
+        {% if review %}
             <td>{{ review[0]['使用規則'] }}</td>
-        </tr>
-    </table>
+        {% else %}
+            <td>{{ rule }}</td>
+        {% endif %}
+    </tr>
+</table>
+    </div>
+    <div class="button">
+    </div>
+
 </div>
+
 <div class="block2">
-    <table>
-        <tr>
+    <div class="title">
+        <h3>點位資料</h3>
+    </div>
+    <div class="content">
+        <table class="point-table">
+            <tr>
             <td>價格</td>
             <td id='price'></td>
-        </tr>
-        <tr>
+            </tr>
+            <tr>
             <td>數量</td>
             <td id='volume'></td>
-        </tr>
-        <tr>
+            </tr>
+            <tr>
             <td>交易類型</td>
             <td id='action'></td>
-        </tr>
-        <tr>
+            </tr>
+            <tr>
             <td>日期</td>
             <td id='date'></td>
-        </tr>
-    </table>
+            </tr>
+        </table>
+    </div>
+    <div class="button">
+    </div>
 </div>
-<div class="block3"></div>
-<div class="block4"></div>
+<div class="block3">
+    <div class="title">
+        <h3>系統檢測結果</h3>
+    </div>
+    <div class="content">
+        <div class="follow" id="follow">
+<!--             <div class="item">
+                <span class="checkmark">✔</span>
+                項目1
+            </div>
+            <div class="item">
+                <span class="checkmark">✔</span>
+                項目2
+            </div> -->
+        </div>
+        <div class="violate" id="violate">
+<!--             <div class="item">
+                <span class="cross">✘</span>
+                項目1
+            </div>
+            <div class="item">
+                <span class="cross">✘</span>
+                項目2
+            </div> -->
+        </div>
+    </div>
+    <div class="button">
+    </div>
+</div>
 <div class="block5">
-    <form action="/update_custom" method="POST">
+    <form id="custom_indicator" action="/update_custom" method="POST">
+        <div class="title">
+            <h3>自訂項目</h3>
+        </div>
 
-      <input type="hidden" id="hiddenDate" name="date">
-      <input type="hidden" id="hiddenPrice" name="price">
-      <input type="hidden" id="hiddenAction" name="action">
-      <input type="submit" value="提交">
+        <div class="content">
+<!--             <div class="item">
+                <label>
+                    <input type="radio" name="item1" class="checkmark-radio">
+                    <span>✔</span>
+                </label>
+                <label>
+                    <input type="radio" name="item1" class="cross-radio">
+                    <span>✘</span>
+                </label>
+                項目1
+            </div>
+            <div class="item">
+                <label>
+                    <input type="radio" name="item2" class="checkmark-radio">
+                    <span>✔</span>
+                </label>
+                <label>
+                    <input type="radio" name="item2" class="cross-radio">
+                    <span>✘</span>
+                </label>
+                項目2
+            </div> -->
+        </div>
+        <div class="button">
+            <input type="submit" value="更新" class="submit-button">
+        </div>
     </form>
+
 </div>
 <div class="block6">
-<form action="{{ url_for('edit_review', review_id=review[0]['review_id']) }}" method="post" >
-    <div class="btn-group col-xs-12">
-
-        <label class="option">
-            <input type="radio" value='finished' name="status" {% if review[0]['狀態'] == 'finished' %} checked {% endif %}><span class="btn btn-warning btn-option">完成</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='unfinished' name="status"{% if review[0]['狀態'] == 'unfinished' %} checked {% endif %}><span class="btn btn-warning btn-option">未完成</span>
-        </label>
+    {% if review %}
+        <form action="{{ url_for('edit_review', review_id=review[0]['review_id']) }}" method="post" >
+    {% else %}
+        <form action="{{ url_for('update_review') }}" method="post" >
+    {% endif %}
+    <input type="hidden" id="stock_name" name="stock_name" value='{{ option }}'>
+    <input type="hidden" id="profit" name="profit">
+    <input type="hidden" id="ratio" name="ratio">
+    <input type="hidden" id="number" name="number">
+    <input type="hidden" id="duration" name="duration">
+    <input type="hidden" id="rule" name="rule" value='{{ rule }}'>
+    <div class="title">
+          <label for="myTextarea"><h3>結論</h3></label>
     </div>
-  <input type="hidden" id="stock_name" name="stock_name" value='{{ option }}'>
-  <input type="hidden" id="profit" name="profit">
-  <input type="hidden" id="ratio" name="ratio">
-  <input type="hidden" id="number" name="number">
-  <input type="hidden" id="duration" name="duration">
-  <input type="hidden" id="rule" name="rule" value='{{ rule }}'>
+    <div class="content">
 
 
-  <label for="myTextarea">輸入文字:</label><br>
-  <textarea id="myTextarea" name="myTextarea" rows="4" cols="50">{{ review[0]['結論'] }}</textarea><br><br>
-  <input type="submit" value="提交">
-</form>
+
+    {% if review %}
+        <textarea class="textarea" name="myTextarea" rows="4">{{ review[0]['結論'] }}</textarea><br>
+    {% else %}
+            <textarea class="textarea" name="myTextarea" rows="4"></textarea><br>
+    {% endif %}
+            
+    </div>
+    <div class="button">
+            <input type="submit" value="提交" class="submit-button">
+
+    </div>
+    </form>
 </div>
 </div>
         
@@ -231,10 +296,16 @@ grid-template-areas:
                 title: '價格' 
             },
             // 調整圖表的寬度和高度
-            width: 600,
+            width: 550,
             height: 400,
-            // 隱藏sliders
-            sliders: [{
+            margin: {
+                l: 50, // 左邊距
+                r: 50, // 右邊距
+                b: 100, // 下邊距
+                t: 100, // 上邊距
+                pad: 4 // 邊框與繪圖區域之間的額外空間
+            },
+                sliders: [{
                 visible: false
             }]
         };
@@ -262,41 +333,110 @@ grid-template-areas:
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // 從後端獲取響應並在前端顯示
-                    console.log(data);
-                    console.log(data['違反'])
 
-                    var block3 = document.querySelector('.block3');
-                    while (block3.firstChild) {
-                        block3.removeChild(block3.firstChild);
+                    var follow = document.getElementById('follow');
+                    while (follow.firstChild) {
+                        follow.removeChild(follow.firstChild);
                     }
-
-                    data['違反'].forEach(function(item) {
+                    data['系統遵守'].forEach(item => {
                         if(item != 'nan'){
-                            var newItem = document.createElement('b');
-                            newItem.textContent = item;
-                            document.querySelector('.block3').appendChild(newItem);
+                        const itemDiv = document.createElement('div');
+                        itemDiv.classList.add('item');
+
+                        const checkmarkSpan = document.createElement('span');
+                        checkmarkSpan.classList.add('checkmark');
+                        checkmarkSpan.textContent = '✔';
+
+                        itemDiv.appendChild(checkmarkSpan);
+                        itemDiv.appendChild(document.createTextNode(item));
+
+                        follow.appendChild(itemDiv);
                         }
+
+
                     });
 
-
-                    var block4 = document.querySelector('.block4');
-                    while (block4.firstChild) {
-                        block4.removeChild(block4.firstChild);
+                    var violate = document.getElementById('violate');
+                    while (violate.firstChild) {
+                        violate.removeChild(violate.firstChild);
                     }
-
-                    data['遵守'].forEach(function(item) {
+                    data['系統違反'].forEach(item => {
                         if(item != 'nan'){
-                            var newItem = document.createElement('b');
-                            newItem.textContent = item;
-                            document.querySelector('.block4').appendChild(newItem);
+                        const itemDiv = document.createElement('div');
+                        itemDiv.classList.add('item');
+
+                        const checkmarkSpan = document.createElement('span');
+                        checkmarkSpan.classList.add('cross');
+                        checkmarkSpan.textContent = '✘';
+
+                        itemDiv.appendChild(checkmarkSpan);
+                        itemDiv.appendChild(document.createTextNode(item));
+
+                        violate.appendChild(itemDiv);
                         }
+
+
                     });
-
-
-                    // stay = String(data['待決定']).split("-");
-                    stay = data['待決定']
                     let form = document.getElementById('custom_indicator');
+                    var content = document.querySelector('.block5 .content');
+                    while (content.firstChild) {
+                        content.removeChild(content.firstChild);
+                    }
+                    data['待決定'].forEach(function(itemName) {
+                        if(itemName != 'nan' &&  itemName != ''){
+                        var item = document.createElement('div');
+                        item.className = 'item';
+                        item.innerHTML = `
+                            <label>
+                                <input type="radio" name="${itemName}" value="遵守" class="checkmark-radio">
+                                <span>✔</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="${itemName}" value="違反" class="cross-radio">
+                                <span>✘</span>
+                            </label>
+                            ${itemName}
+                        `;
+                        content.appendChild(item);
+                        }
+                    });
+                    data['遵守'].forEach(function(itemName) {
+                        if(itemName != 'nan' && itemName != ''){
+                        var item = document.createElement('div');
+                        item.className = 'item';
+                        item.innerHTML = `
+                            <label>
+                                <input type="radio" name="${itemName}" value="遵守" class="checkmark-radio" checked>
+                                <span>✔</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="${itemName}" value="違反" class="cross-radio">
+                                <span>✘</span>
+                            </label>
+                            ${itemName}
+                        `;
+                        content.appendChild(item);
+                        }
+                    });
+                    data['違反'].forEach(function(itemName) {
+                        if(itemName != 'nan' &&  itemName != ''){
+                        var item = document.createElement('div');
+                        item.className = 'item';
+                        item.innerHTML = `
+                            <label>
+                                <input type="radio" name="${itemName}" value="遵守" class="checkmark-radio" >
+                                <span>✔</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="${itemName}" value="違反" class="cross-radio" checked>
+                                <span>✘</span>
+                            </label>
+                            ${itemName}
+                        `;
+                        content.appendChild(item);
+                        }
+                    });
+
                     let submit = document.createElement('input');
                     submit.type = 'submit';
                     console.log("form", form)
@@ -307,7 +447,7 @@ grid-template-areas:
                     input1.id = 'hiddenDate';
                     input1.name = 'date';
                     input1.value = document.getElementById("date").innerHTML;
-                    form.appendChild(input1); // 將輸入字段添加到表單中
+                    content.appendChild(input1); // 將輸入字段添加到表單中
 
                     // 創建第二個隱藏輸入字段
                     var input2 = document.createElement('input');
@@ -315,7 +455,7 @@ grid-template-areas:
                     input2.id = 'hiddenPrice';
                     input2.name = 'price';
                     input2.value = document.getElementById("price").innerHTML;
-                    form.appendChild(input2); // 將輸入字段添加到表單中
+                    content.appendChild(input2); // 將輸入字段添加到表單中
 
                     // 創建第三個隱藏輸入字段
                     var input3 = document.createElement('input');
@@ -323,7 +463,7 @@ grid-template-areas:
                     input3.id = 'hiddenAction';
                     input3.name = 'action';
                     input3.value = document.getElementById("action").innerHTML;
-                    form.appendChild(input3); // 將輸入字段添加到表單中
+                    content.appendChild(input3); // 將輸入字段添加到表單中
 
                     for (let custom of stay) {
                         if(custom != 'nan'){

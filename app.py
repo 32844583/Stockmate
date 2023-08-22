@@ -443,7 +443,6 @@ sell_df = pd.DataFrame()
 trade_df = pd.read_csv('trades.csv', encoding='utf-8-sig')
 card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
 review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
-custom_df = pd.read_csv('customs.csv', encoding='utf-8-sig')
 
 @app.route('/review', methods=['GET', 'POST'])
 @login_required
@@ -452,6 +451,9 @@ def review():
     reviews = review_df.to_dict(orient='records')
     items = trade_df.drop_duplicates(subset=['使用規則', '股票名稱'], keep='first')
     items = items.to_dict(orient='records')
+    print(f'--------------載入所有績效-------------')
+    print(f'所有item{items}')
+    print(f'--------------所有績效-------------')
     return render_template('review.html', items=items, reviews=reviews)
 
 @app.route('/options')
@@ -469,7 +471,9 @@ def check_point():
     global trade_df
     user_id = int(current_user.get_id())
     data = request.get_json()
-
+    print(f'--------------按下點位-------------')
+    print(f'資料: {data}')
+    print(f'--------------按下點位-------------')
     if data['type'] == 'sell':
         action = '賣'
     else:
@@ -479,6 +483,7 @@ def check_point():
     options = data['option']
     date = data['date'].replace('-', '/').replace('/0', '/')
     point_data = one_point_indicator_detail(user_id, options, date, data['price'], action, rule)
+
     return jsonify(point_data)
 @app.route('/add_review', defaults={'review_id': 9999}, methods=['GET', 'POST'])
 @app.route('/add_review/<int:review_id>', methods=['GET', 'POST'])
@@ -671,13 +676,19 @@ def add_review(review_id):
 
     buy_dict = {}
     for item in custom_list:
-        buy_dict.update(calculate_probability(buy_df, "遵守", item))
+        try:
+            buy_dict.update(calculate_probability(buy_df, "遵守", item))
+        except AttributeError:
+            print("目前沒有資料")
     buy_ratio = {col: buy_df[col].mean() for col in buy_df.columns if col.endswith('_buy')}
     buy_ratio.update(buy_dict)
 
     sell_dict = {}
     for item in custom_list:
-        sell_dict.update(calculate_probability(sell_df, "遵守", item))
+        try:
+            sell_dict.update(calculate_probability(sell_df, "遵守", item))
+        except AttributeError:
+            print("目前沒有資料")
     sell_ratio = {col: sell_df[col].mean() for col in sell_df.columns if col.endswith('_sell')}
     sell_ratio.update(sell_dict)
 
@@ -686,18 +697,19 @@ def add_review(review_id):
         yaxis_title='True Probability',
         autosize=False,
         width=600,
-        height=300,
-        margin=dict(l=50, r=50, t=50, b=50),
+        height=280,
+        margin=dict(l=50, r=50, t=0, b=10),
         )
 
     print(f'--------------載入頁面-------------')
+    print(f'股票{stock_symbol}價格資料', stock_data.head(50))
     # print(f'所有交易點(顯示在圖表上的){trade_data}')
-    print(f'買點資料: {buy_df}')
-    print(f'賣點資料: {sell_df}')
+    # print(f'買點資料: {buy_df}')
+    # print(f'賣點資料: {sell_df}')
     print(f'--------------載入頁面-------------')
 
     if review_id == 9999:
-        return render_template('add_review.html', fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('temp.html', fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
 
     else:
         review = review_df[review_df['review_id'] == review_id]
@@ -734,7 +746,7 @@ def calculate_probability(df, column, keyword):
 
 
 def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
-    global buy_df, sell_df, trade_df, card_df, custom_df
+    global buy_df, sell_df, trade_df, card_df
     # print(f'--------------讀取目前頁面資料-------------')
     # print(f'買點資料: {buy_df}')
     # print(f'賣點資料: {sell_df}')
@@ -757,19 +769,19 @@ def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
     sells['日期'] = sells['日期'].str.replace("/0", "/")
 
     if action == '買':
-        print(f'--------------校驗檢索-------------')
-        print('type:', buys['user_id'].dtype, ' value:', buys['user_id'].iloc[0])
-        print('type:', buys['股票名稱'].dtype, ' value:', buys['股票名稱'].iloc[0])
-        print('type:', buys['日期'].dtype, ' value:', buys['日期'].iloc[0])
-        print('type:', buys['價格'].dtype, ' value:', buys['價格'].iloc[0])
-        print('type:', buys['買/賣'].dtype, ' value:', buys['買/賣'].iloc[0])
-        print(f'--------------校驗檢索-------------')
-        print('type:', type(user_id), ' value:', user_id)
-        print('type:', type(stock_name), ' value:', stock_name)
-        print('type:', type(date), ' value:', date)
-        print('type:', type(price), ' value:', price)
-        print('type:', type(action), ' value:', action)
-        print(f'--------------校驗檢索-------------')
+        # print(f'--------------校驗檢索-------------')
+        # print('type:', buys['user_id'].dtype, ' value:', buys['user_id'].iloc[0])
+        # print('type:', buys['股票名稱'].dtype, ' value:', buys['股票名稱'].iloc[0])
+        # print('type:', buys['日期'].dtype, ' value:', buys['日期'].iloc[0])
+        # print('type:', buys['價格'].dtype, ' value:', buys['價格'].iloc[0])
+        # print('type:', buys['買/賣'].dtype, ' value:', buys['買/賣'].iloc[0])
+        # print(f'--------------校驗檢索-------------')
+        # print('type:', type(user_id), ' value:', user_id)
+        # print('type:', type(stock_name), ' value:', stock_name)
+        # print('type:', type(date), ' value:', date)
+        # print('type:', type(price), ' value:', price)
+        # print('type:', type(action), ' value:', action)
+        # print(f'--------------校驗檢索-------------')
         buys = buys[(buys['user_id'] == user_id) & (buys['股票名稱'] == stock_name) & (buys['日期'] == date) & (buys['價格'] == price) & (buys['買/賣'] == action)]
 
         if 'sma' in buys.columns:
@@ -840,9 +852,9 @@ def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
                 violate.append("依 mfi 強弱交易")
 
         if buys['遵守'].tolist():
-            follow.extend(str(buys['遵守'].tolist()[0]).split('-'))
+            point_data['遵守'] = str(buys['遵守'].tolist()[0]).split('-')
         if buys['違反'].tolist():
-            violate.extend(str(buys['違反'].tolist()[0]).split('-'))
+            point_data['違反'] = str(buys['違反'].tolist()[0]).split('-')
 
     else:
         sells = sells[(sells['user_id'] == user_id) & (sells['股票名稱'] == stock_name) & (sells['日期'] == date) & (sells['價格'] == price) & (sells['買/賣'] == action)]
@@ -915,27 +927,24 @@ def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
                 violate.append("依 mfi 強弱交易")
 
         if sells['遵守'].tolist():
-            follow.extend(str(sells['遵守'].tolist()[0]).split('-'))
+            point_data['遵守'] = str(sells['遵守'].tolist()[0]).split('-')
         if sells['違反'].tolist():
-            violate.extend(str(sells['違反'].tolist()[0]).split('-'))
+            point_data['違反'] = str(sells['違反'].tolist()[0]).split('-')
 
 
-    follow = [x for x in follow if x != '' and x != 'nan']
-    violate = [x for x in violate if x != '' and x != 'nan']
-    stay = [x for x in custom_list if x not in follow and x not in violate]
 
-    stay = [x for x in stay if x != '' and x != 'nan']
-
-    point_data['遵守'] = follow
-    point_data['違反'] = violate
+    stay = [x for x in custom_list if x not in point_data['遵守'] and x not in point_data['違反']]
     point_data['待決定'] = stay
+    point_data['系統遵守'] = follow
+    point_data['系統違反'] = violate
+
     point_data = remove_nan(point_data)
 
-    print(f'--------------按下點位-------------')
-    print(f'目前策略的所有卡牌: {card_list}')
-    print(f'目前策略的客製卡牌: {custom_list}')
-    print(f'輸出: {point_data}')
-    print(f'--------------按下點位-------------')
+    # print(f'--------------按下點位-------------')
+    # print(f'目前策略的所有卡牌: {card_list}')
+    # print(f'目前策略的客製卡牌: {custom_list}')
+    # print(f'輸出: {point_data}')
+    # print(f'--------------按下點位-------------')
 
     return point_data
 
@@ -950,6 +959,7 @@ def remove_nan(d):
 
 @app.route('/update_review', methods=['POST'])
 def update_review():
+    global review_df
     status = request.form.get("status", ' ')
     conclusion = request.form.get('myTextarea')
     duration = request.form.get('duration')
@@ -972,7 +982,11 @@ def update_review():
         columns=["review_id", "user_id", "交易期間",  "股票名稱", "獲利", "報酬率", "交易筆數", "狀態", "結論", "使用規則"])
 
     df.to_csv("reviews.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
+    review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
 
+    print(f'--------------送出表單-------------')
+    print(f'目前資料: {df}')
+    print(f'--------------送出表單-------------')
     return redirect(url_for('index'))
 
 @app.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
@@ -1012,35 +1026,38 @@ def update_custom():
     data = request.form.to_dict()
     action = str(action)[0]
 
+    # print(f'--------------更新指標-------------')
+    # print('收到資料: ', data)
+    # print(f'--------------更新指標-------------')
+
 
     mask = (trade_df['user_id'] == user_id) & (trade_df['日期'] == date) & (trade_df['價格'] == float(price)) & (trade_df['買/賣'] == action[0])
-    try:
-        follow_origin = str(trade_df.loc[mask, '遵守'].tolist()[0]).split('-')
-        follow_origin = [x for x in follow_origin if x != '' and x != 'nan']
-    except IndexError:
-        follow_origin = []
+    
 
-    try:
-        violate_origin = str(trade_df.loc[mask, '違反'].tolist()[0]).split('-')
-        violate_origin = [x for x in violate_origin if x != '' and x != 'nan']
-    except IndexError:
-        violate_origin = []
+    # try:
+    #     follow_origin = str(trade_df.loc[mask, '遵守'].tolist()[0]).split('-')
+    #     follow_origin = [x for x in follow_origin if x != '' and x != 'nan']
+    # except IndexError:
+    #     follow_origin = []
+
+    # try:
+    #     violate_origin = str(trade_df.loc[mask, '違反'].tolist()[0]).split('-')
+    #     violate_origin = [x for x in violate_origin if x != '' and x != 'nan']
+    # except IndexError:
+    #     violate_origin = []
+
     follow_form = [k for k, v in data.items() if v == '遵守']
     violate_form = [k for k, v in data.items() if v == '違反']
 
-
-
-
-
-    follow = '-'.join(follow_form + follow_origin)
-    violate = '-'.join(violate_form + violate_origin)
-    stay = '-'.join([k for k, v in data.items() if v == '待決定'])
+    follow = '-'.join(follow_form)
+    violate = '-'.join(violate_form)
+    # stay = '-'.join([k for k, v in data.items() if v == '待決定'])
 
 
     data = {
         "遵守" : follow ,
         "違反" : violate ,
-        "待決定" : stay
+        # "待決定" : stay
     }
     
     trade_df.loc[mask, data.keys()] = data.values()
