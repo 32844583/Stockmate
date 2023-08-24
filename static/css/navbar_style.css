@@ -73,6 +73,8 @@ nav .nav-bar .logo a{
     font-weight: 500;
     color: var(--text-color);
     text-decoration: none;
+    margin-left: -20vw; /* 向左移動 20 像素 */
+
 }
 
 .menu .logo-toggle{
@@ -82,6 +84,9 @@ nav .nav-bar .logo a{
 .nav-bar .nav-links{
     display: flex;
     align-items: center;
+    margin-bottom: 30px;
+    margin-left: 20vw; /* 向左移動 20 像素 */
+
 }
 
 .nav-bar .nav-links li{
@@ -119,6 +124,7 @@ nav .nav-bar .logo a{
 .nav-bar .darkLight-searchBox{
     display: flex;
     align-items: center;
+    margin-left: 38vw; /* 向右移動 20 像素 */
 }
 
 .darkLight-searchBox .dark-light,
@@ -138,6 +144,7 @@ nav .nav-bar .logo a{
     font-size: 22px;
     cursor: pointer;
     transition: all 0.3s ease;
+
 }
 
 .dark-light i.sun{
@@ -189,6 +196,7 @@ nav .nav-bar .logo a{
     opacity: 0;
     pointer-events: none;
     transition: all 0.3s ease;
+
 }
 
 .searchToggle.active ~ .search-field{

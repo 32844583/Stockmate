@@ -54,6 +54,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+buy_df = pd.DataFrame()
+sell_df = pd.DataFrame()
+trade_df = pd.read_csv('trades.csv', encoding='utf-8-sig')
+card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
+review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
+
 
 # Sample User class for Flask-Login
 class User(db.Model, UserMixin):
@@ -132,19 +138,35 @@ def register():
 @app.route('/', methods=['POST', 'GET'])
 @login_required
 def index():
+    global  trade_df
     user_id = int(current_user.get_id())
 
     symbol = '2330.TW'
     if request.method == 'POST':
         symbol = request.form.get("symbol")
-    print(symbol)        
 
     stock = yf.Ticker(symbol)
     data = stock.history(period='6mo')
-    data = data[['Open','High','Low','Close','Volume']]
-    data.reset_index(level='Date', inplace=True)
 
-    # https://stackoverflow.com/questions/61346100/plotly-how-to-style-a-plotly-figure-so-that-it-doesnt-display-gaps-for-missing
+    # -----------------取得資料----------------#
+
+
+    df = trade_df.loc[(trade_df['股票代號'] == symbol) & (trade_df['user_id'] == user_id)]
+    df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
+
+    stock_symbol = symbol[:4]
+
+    start_date = df['日期'].min() - relativedelta(months=2)
+    end_date = df['日期'].max() + relativedelta(days=2)
+    stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
+    data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
+
+    data = [d for d in data if start_date <= d.date <= end_date]
+    data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
+    
+    data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
+
+    # -----------------取得資料----------------#
     dt_all = pd.date_range(start=data['Date'].iloc[0],end=data['Date'].iloc[-1])
     dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(data['Date'])]
     dt_breaks = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
@@ -393,7 +415,7 @@ def add_trade():
 def delete_trade(trade_id):
     df = pd.read_csv('trades.csv', encoding='utf-8-sig')
     df = df[~(df['trade_id'] == trade_id)]
-    df.to_csv('trades.csv', mode='w', encoding='utf-8-sig')
+    df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(url_for('index'))
 
 # 定義一個路由和函數來處理編輯交易的請求
@@ -438,11 +460,7 @@ def edit_trade(trade_id):
 
         return redirect(url_for('index'))
 
-buy_df = pd.DataFrame()
-sell_df = pd.DataFrame()
-trade_df = pd.read_csv('trades.csv', encoding='utf-8-sig')
-card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
-review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
+
 
 @app.route('/review', methods=['GET', 'POST'])
 @login_required
@@ -452,7 +470,7 @@ def review():
     items = trade_df.drop_duplicates(subset=['使用規則', '股票名稱'], keep='first')
     items = items.to_dict(orient='records')
     print(f'--------------載入所有績效-------------')
-    print(f'所有item{items}')
+    print(f'所有item{reviews}')
     print(f'--------------所有績效-------------')
     return render_template('review.html', items=items, reviews=reviews)
 
@@ -503,16 +521,22 @@ def add_review(review_id):
     term = data[0]
     df = trade_df.loc[(trade_df['股票名稱'] == option) & (trade_df['使用規則'] == rule) & (trade_df['user_id'] == user_id)]
     df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
-    stock_symbol = df['股票代號'].iloc[0]
+
+    # twstock 只取數字
+    stock_symbol = df['股票代號'].iloc[0][:4]
+
     start_date = df['日期'].min() - relativedelta(months=2)
-    start_date_str = start_date.strftime('%Y-%m-%d')
-
     end_date = df['日期'].max() + relativedelta(days=2)
-    end_date_str = end_date.strftime('%Y-%m-%d')
 
-    ticker = yf.Ticker(stock_symbol)
-    stock_data = ticker.history(stock_symbol, start=start_date_str, end=end_date_str)
-    stock_data.reset_index(inplace=True)
+    stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
+    data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
+
+    # 篩選出 start_date 至 end_date 之間的資料
+    data = [d for d in data if start_date <= d.date <= end_date]
+    stock_data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
+    
+    # 去掉無用欄位並且轉換 datetime => string
+    stock_data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
     stock_data = stock_data.rename(columns={'Date': '日期'})
     stock_data['日期'] = stock_data['日期'].dt.strftime('%Y-%m-%d')
 
@@ -524,49 +548,54 @@ def add_review(review_id):
     # print(custom.split('-').index('custom')+1)
     custom_list = card_list[custom_index+1:]
     default_list = card_list[:custom_index]
+    if term == 'short':
+        args_day = 5
+    else:
+        args_day = 20
 
     # 趨勢指標
     if 'sma' in default_list:
-        stock_data['sma'] = ta.sma(stock_data['Close'], length=20)
+        stock_data['sma'] = ta.sma(stock_data['Close'], length=args_day)
 
     if 'ema' in default_list:
-        stock_data['ema'] = ta.ema(stock_data['Close'], length=20)
+        stock_data['ema'] = ta.ema(stock_data['Close'], length=args_day)
 
     if 'wma' in default_list:
-        stock_data['wma'] = ta.wma(stock_data['Close'], length=20)
+        stock_data['wma'] = ta.wma(stock_data['Close'], length=args_day)
 
     if 'hma' in default_list:
-        stock_data['hma'] = ta.hma(stock_data['Close'], length=20)
+        stock_data['hma'] = ta.hma(stock_data['Close'], length=args_day)
 
     # 震盪指標
     if 'rsi' in default_list:
-        stock_data['rsi'] = ta.rsi(stock_data['Close'], length=14)
+        stock_data['rsi'] = ta.rsi(stock_data['Close'], length=args_day)
 
     if 'stoch' in default_list:
-        stock_data[['slowk', 'slowd']] = ta.stoch(stock_data['High'], stock_data['Low'], stock_data['Close'], fastk_period=14, slowk_period=3, slowd_period=3)
+        stock_data[['slowk', 'slowd']] = ta.stoch(stock_data['High'], stock_data['Low'], stock_data['Close'], fastk_period=args_day, slowk_period=3, slowd_period=3)
     
     if 'cci' in default_list:
-        stock_data['cci'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], length=20)
+        stock_data['cci'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
 
     # 通道指標
     if 'bbl' in default_list:
-        stock_data[['bbm', 'bbh', 'bbl', 'bbb', 'bbp']] = ta.bbands(stock_data['Close'], length=20)
+        stock_data[['bbm', 'bbh', 'bbl', 'bbb', 'bbp']] = ta.bbands(stock_data['Close'], length=args_day)
     
     if 'kc' in default_list:
-        stock_data[['kc', 'kcb', 'kct']] = ta.kc(stock_data['High'], stock_data['Low'], stock_data['Close'], length=20)
+        stock_data[['kc', 'kcb', 'kct']] = ta.kc(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
 
 
     # 能量指標
     if 'cmf' in default_list:
-        stock_data['cmf'] = ta.cmf(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=20)
+        stock_data['cmf'] = ta.cmf(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
     
     if 'mfi' in default_list:
-        stock_data['mfi'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=14)
+        stock_data['mfi'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+    
+
     # stock_data 的日期為 object 型態(為了讓 plotly.js 顯示)
     df['日期'] = df['日期'].apply(lambda x: x.strftime('%Y/%m/%d'))
 
     df = pd.merge(df, stock_data, how='left', on='日期')
-    df = df.drop(['Dividends', 'Stock Splits'], axis=1)
     buy_df = df.loc[df['買/賣'] == '買']
 
     # 趨勢指標
@@ -709,12 +738,12 @@ def add_review(review_id):
     print(f'--------------載入頁面-------------')
 
     if review_id == 9999:
-        return render_template('temp.html', fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('review_form.html', fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
 
     else:
         review = review_df[review_df['review_id'] == review_id]
         review = review.to_dict('records')
-        return render_template('temp.html', fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('review_form.html', fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
 
 
 def get_stock_basic_info(stock_name, rule):
@@ -1011,9 +1040,9 @@ def edit_review(review_id):
 
 @app.route('/delete_review/<int:review_id>', methods=['GET', 'POST'])
 def delete_review(review_id):
-    df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
-    df = df[~(df['review_id'] == review_id)]
-    df.to_csv('reviews.csv', mode='w', encoding='utf-8-sig')
+    global review_df
+    review_df = review_df[~(review_df['review_id'] == review_id)]
+    review_df.to_csv('reviews.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(request.referrer)
 
 @app.route('/update_custom', methods=['POST'])
@@ -1077,5 +1106,3 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-# Bug
-# 在編輯資料後需要重讀 read_csv

@@ -1,7 +1,6 @@
 /*  table-outbox
 ------------------------------------- */
 .table-outbox {
-  margin: 50px; /* 添加外距 */
   box-shadow: 0px 35px 50px rgba(27, 31, 49, 0.1); /* 添加表格陰影 */
 }
 
@@ -11,17 +10,24 @@
   border-collapse: collapse; /* 表格邊框合併 */
   width: 100%; /* 寬度 100% */
   background-color: white; /* 背景白色 */
+  margin-top: 1%;
 }
 
 .table-outbox table thead th {
-  color: #ffffff; /* 表頭文字白色 */
-  background: #7fc3ff; /* 表頭背景白色 */
+  color: black; /* 表頭文字白色 */
+  background: #9D9D9D ; /* 表頭背景白色 */
 }
 
-.table-outbox table td,
+.table-outbox table td {
+  text-align: center; /* 文字置中顯示 */
+  padding: 5px; /* 添加內距 */
+  font-size: 1.1em;
+}
+
 .table-outbox table th {
   text-align: center; /* 文字置中顯示 */
   padding: 10px; /* 添加內距 */
+  font-size: 1.3em;
 }
 
 .table-outbox table td {
@@ -33,13 +39,47 @@
 }
 .candlestick-chart {
   margin-left: 2%;
-  margin-top: 3%;
+  margin-top: 1%;
   float: left;
   width: 41%;
 }
 .table-outbox {
-  margin-top: 3%;
+  margin-top: 1%;
   float: left;
-  width: 50%;
+  width: 56%;
 }
 
+.table-outbox .submit-button {
+      background-color: #46A3FF; /* 綠色 */
+      border: none;
+      color: white;
+      padding: 4px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 0.9em;
+      margin: 4px 2px;
+      cursor: pointer;
+}
+
+.table-outbox .submit-button:hover {
+        background-color: #0072E3;
+}
+
+
+.floor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.submit-button.addbtn{
+  font-size: 1.2em;
+  padding: 7px 80px;
+  background: #46A3FF; /* 表頭背景白色 */
+  border-radius: 2px;
+}
+
+.submit-button.addbtn:hover{
+  background: #0072E3; /* 表頭背景白色 */
+}
