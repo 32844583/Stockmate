@@ -31,3 +31,69 @@
 .table-outbox table tr:nth-child(even) {
   background: #f8f8f8; /* 表格偶數 tr 灰色背景 */
 }
+
+
+.floor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.floor .submit-button.addbtn{
+  font-size: 1.2em;
+  padding: 7px 80px;
+  background: #46A3FF; /* 表頭背景白色 */
+  border-radius: 2px;
+  color: white;
+}
+
+.floor .submit-button.addbtn:hover{
+  background: #0072E3; /* 表頭背景白色 */
+}
+
+.form_div * {
+  box-sizing: border-box;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.form_div {
+  position: fixed;
+  top: 0%;
+  left: 35%;
+  z-index: -1;
+  align-items: center;
+  justify-content: center;
+  width: 50vw;
+  height: 50vh;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+
+.form_div form {
+  padding: 15px;
+  background: #fff;
+  max-width: 500px;
+  width: 100%;
+  border-radius: 7px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+}
+
+
+.form_div .submit-btn {
+  color: white;
+  border: none;
+  height: auto;
+  font-size: 16px;
+  padding: 13px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  text-align: center;
+  background: #1BB295;
+  transition: 0.2s ease;
+}
+
+.form_div .submit-btn:hover {
+  background: #179b81;
+}

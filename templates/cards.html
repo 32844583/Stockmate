@@ -31,27 +31,39 @@
 <p></p>
 </div>
 <!-- Forms -->
-{% for i in range(cards|length) %}
-{% set list = cards[i]['使用卡牌'].split('-') %}
-
+{% for i in range(cards|length + 1) %}
+{% if cards[i] %}
+    {% set list = cards[i]['使用卡牌'].split('-') %}
+{% else %}
+    {% set list = [0] %}
+    {% set i = amount %}
+{% endif %}
 <div class="container" id="form-{{ i }}-form" style="display: none;">
 
 <form id='form{{ i }}' action="{{ url_for('cards') }}" method='post'>
+
+    {% if cards[i] %}
+
     <div style="display:none">
         <label class="option">
           <input type="radio" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked/>
         </label>
     </div>
+    {% else %}
+    <label for="rule_name">卡組名稱:</label>
+
+    <input type="text" id="rule_name" name="rule_name" required><br>
+    {% endif %}
     <label class="optest">
         <input type="radio" disabled><span class="test">投資期間</span>
     </label>
     <div class="btn-group col-xs-12">
 
         <label class="option">
-            <input type="radio" value='long' name="term" {% if 'long' in list %} checked {% endif %}><span class="btn btn-warning btn-option">長期</span>
+            <input type="radio" value='long' name="term" {% if 'long' in list %} checked {% endif %}><span class="btn btn-warning btn-option">長期(20)</span>
         </label>
         <label class="option">
-            <input type="radio" value='short' name="term" {% if 'short' in list %} checked {% endif %}><span class="btn btn-warning btn-option">短期</span>
+            <input type="radio" value='short' name="term" {% if 'short' in list %} checked {% endif %}><span class="btn btn-warning btn-option">短期(5)</span>
         </label>
     </div>
     <p></p>
@@ -60,17 +72,17 @@
     </label>
     <div class="btn-group col-xs-12">
         <label class="option">
-            <input type="radio" value='sma' name="trend" {% if 'sma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">SMA</span>
+            <input type="radio" value='sma' name="trend" {% if 'sma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越SMA</span>
         </label>
 
         <label class="option">
-            <input type="radio" value='ema' name="trend" {% if 'ema' in list %} checked {% endif %}><span class="btn btn-warning btn-option">EMA</span>
+            <input type="radio" value='ema' name="trend" {% if 'ema' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越EMA</span>
         </label>
         <label class="option">
-            <input type="radio" value='wma' name="trend" {% if 'wma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">WMA</span>
+            <input type="radio" value='wma' name="trend" {% if 'wma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越WMA</span>
         </label>
         <label class="option">
-            <input type="radio" value='hma' name="trend" {% if 'hma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">HMA</span>
+            <input type="radio" value='hma' name="trend" {% if 'hma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越HMA</span>
         </label>
     </div>
     <p></p>
@@ -79,13 +91,13 @@
     </label>
     <div class="btn-group col-xs-12">
         <label class="option">
-            <input type="radio" value='rsi' name="oscillators" {% if 'rsi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">RSI</span>
+            <input type="radio" value='rsi' name="oscillators" {% if 'rsi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">RSI強弱</span>
         </label>
         <label class="option">
-            <input type="radio" value='stoch' name="oscillators" {% if 'stoch' in list %} checked {% endif %}><span class="btn btn-warning btn-option">STOCH</span>
+            <input type="radio" value='stoch' name="oscillators" {% if 'stoch' in list %} checked {% endif %}><span class="btn btn-warning btn-option">STOCH強弱</span>
         </label>
         <label class="option">
-            <input type="radio" value='cci' name="oscillators" {% if 'cci' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CCI</span>
+            <input type="radio" value='cci' name="oscillators" {% if 'cci' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CCI強弱</span>
         </label>
     </div>
     <p></p>
@@ -94,10 +106,10 @@
     </label>
     <div class="btn-group col-xs-12">
         <label class="option">
-            <input type="radio" value='bbl' name="volatility" {% if 'bbf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">BBL</span>
+            <input type="radio" value='bbl' name="volatility" {% if 'bbf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越BBL</span>
         </label>
         <label class="option">
-            <input type="radio" value='kc' name="volatility" {% if 'kc' in list %} checked {% endif %}><span class="btn btn-warning btn-option">KC</span>
+            <input type="radio" value='kc' name="volatility" {% if 'kc' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越KC</span>
         </label>        
     </div>
     <p></p>
@@ -107,27 +119,29 @@
 
     <div class="btn-group col-xs-12">
         <label class="option">
-            <input type="radio" value='cmf' name="energy" {% if 'cmf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CMF</span>
+            <input type="radio" value='cmf' name="energy" {% if 'cmf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CMF強弱</span>
         </label>
         <label class="option">
-            <input type="radio" value='mfi' name="energy" {% if 'mfi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">MFI</span>
+            <input type="radio" value='mfi' name="energy" {% if 'mfi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">MFI強弱</span>
         </label>        
     </div>
     <p></p>
     <label class="optest">
         <input type="radio" disabled><span class="test">自定義選項</span>
     </label>
-    <div class="btn-group col-xs-12" id='custom{{ i }}'>
 
-    {% for i in range(custom_list|length) %}
-        {% if custom_list[i] != '' %}
+    
+    <div class="btn-group col-xs-12" id='custom{{ i }}'>
+    {% for j in range(custom_list|length) %}
+        {% if custom_list[j] != '' %}
           <div class="select">
-              <input type="checkbox" id="item_{{ i }}" name='item' value="{{ custom_list[i] }}" {% if custom_list[i] in list %} checked {% endif %} >
-              <label class="btn btn-warning button_select" for="item_{{ i }}">{{ custom_list[i] }}</label>
+              <input type="checkbox" id="item_{{ i }}_{{ j }}" name='item' value="{{ custom_list[j] }}" {% if custom_list[j] in list %} checked {% endif %} >
+              <label class="btn btn-warning button_select" for="item_{{ i }}_{{ j }}">{{ custom_list[j] }}</label>
           </div>
         {% endif %}
     {% endfor %}
     </div>
+
 
     <form id="myForm">
     <input type="text" id="myText{{ i }}" placeholder="Enter some text">
@@ -135,18 +149,19 @@
     </form>
     <p></p>
     <div class='submit-div'>
-        <button type="submit" class='btn submit'onclick="submit_form({{ i }})">提交</button>
+        <button type="submit" class='btn submit' onclick="submit_form({{ i }})">提交</button>
     </div>
+
 </form>
 </div>
 {% endfor %}
-{% include 'card_form.html'%}
 
 
 
 
 
     <script>
+var radios = document.querySelectorAll('input[type=radio]');
 
     // 獲取所有的 radiobox 和 form
     const radioboxes = document.querySelectorAll('input[type=radio][name="radiobox-group"]');

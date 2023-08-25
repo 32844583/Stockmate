@@ -73,7 +73,7 @@ nav .nav-bar .logo a{
     font-weight: 500;
     color: var(--text-color);
     text-decoration: none;
-    margin-left: -20vw; /* 向左移動 20 像素 */
+    margin-left: -15vw; /* 向左移動 20 像素 */
 
 }
 
@@ -124,7 +124,7 @@ nav .nav-bar .logo a{
 .nav-bar .darkLight-searchBox{
     display: flex;
     align-items: center;
-    margin-left: 38vw; /* 向右移動 20 像素 */
+    margin-left: 30vw; /* 向右移動 20 像素 */
 }
 
 .darkLight-searchBox .dark-light,

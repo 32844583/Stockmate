@@ -2,14 +2,13 @@ from datetime import datetime, timedelta
 from datetime import date
 import feedparser
 import pandas as pd
-import yfinance as yf
 import twstock
 import re
 import time
 import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
 from decimal import Decimal
 import math
 import os
@@ -145,9 +144,6 @@ def index():
     if request.method == 'POST':
         symbol = request.form.get("symbol")
 
-    stock = yf.Ticker(symbol)
-    data = stock.history(period='6mo')
-
     # -----------------取得資料----------------#
 
 
@@ -244,7 +240,7 @@ def index():
     fig.add_trace(go.Scatter(x=trade_df.loc[trade_df['買/賣'] == '買', '日期'],
     y=trade_df.loc[trade_df['買/賣'] == '買', '價格'],
     mode='markers',
-    marker=dict(symbol='triangle-up', color='black', size=10),
+    marker=dict(symbol='triangle-up-open', color='black', line=dict(color='black', width=2), size=10),
     text=trade_df.loc[trade_df['買/賣'] == '買', '買/賣'],
     customdata=trade_df.loc[trade_df['買/賣'] == '買', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
@@ -253,7 +249,7 @@ def index():
     fig.add_trace(go.Scatter(x=trade_df.loc[trade_df['買/賣'] == '賣', '日期'],
     y=trade_df.loc[trade_df['買/賣'] == '賣', '價格'],
     mode='markers',
-    marker=dict(symbol='triangle-down', color='black', size=10),
+    marker=dict(symbol='triangle-down-open', color='black', line=dict(color='black', width=2), size=10),
     text=trade_df.loc[trade_df['買/賣'] == '賣', '買/賣'],
     customdata=trade_df.loc[trade_df['買/賣'] == '賣', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
@@ -289,13 +285,11 @@ def update():
 @app.route('/cards', methods=['POST', 'GET'])
 @login_required
 def cards():
+    global card_df
+    user_id = int(current_user.get_id())
     current_dir = os.getcwd()
     filename = 'cards.csv'
-    card_item = ['test']
-    df = pd.read_csv('cards.csv', encoding='utf-8-sig')
-    test = ""
-    user_id = int(current_user.get_id())
-    cards = df.loc[(df['user_id'] == user_id)]
+    cards = card_df.loc[(card_df['user_id'] == user_id)]
     customs = cards['使用卡牌'].tolist()
 
     # get all user's cards
@@ -336,14 +330,23 @@ def cards():
 
         mask = cards['卡組名稱'] == rule_name
 
-        data = {
-            '卡組名稱': rule_name,
-            '使用卡牌': select_item,
-        }
-        cards.loc[mask, data.keys()] = data.values()
 
-        cards.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
+        if cards.loc[mask].empty:
+            card_id = card_df.shape[0]
+            cards = pd.DataFrame([[card_id, user_id, rule_name, select_item]], \
+                columns=["card_id", "user_id", "卡組名稱", "使用卡牌"])
+            cards.to_csv('cards.csv', mode='a', encoding='utf-8-sig', index=False, header=False)
 
+        else:
+            data = {
+                '卡組名稱': rule_name,
+                '使用卡牌': select_item,
+            }
+            cards.loc[mask, data.keys()] = data.values()
+            cards.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
+        print(f'--------------新增卡組-------------')
+        print(f'目前卡組 \n {cards}')
+        print(f'--------------新增卡組-------------')
         # card_list = request.form.getlist('card_name') # 獲取勾選框的 value 列表
         # card_string = '-'.join(card_list) # 將列表中的元素用 '-' 串成一個字串
         # card_id = pd.read_csv('cards.csv', encoding='utf-8-sig').shape[0]
@@ -353,7 +356,7 @@ def cards():
         return redirect(url_for('cards'))
 
     cards =cards.to_dict(orient='records')
-    return render_template('cards.html', cards=cards, card_item=card_item, test=test, custom_list=custom_list)
+    return render_template('cards.html', cards=cards, custom_list=custom_list)
 
 @app.route('/delete_card/<int:card_id>', methods=['GET', 'POST'])
 @login_required
@@ -507,10 +510,16 @@ def check_point():
 @app.route('/add_review/<int:review_id>', methods=['GET', 'POST'])
 def add_review(review_id):
     global card_df, buy_df, sell_df, trade_df, review_df
+
     user_id = int(current_user.get_id())
     if review_id == 9999:
         rule = request.args.get('rule')
         option = request.args.get('options')
+        repeat_check = review_df.loc[(trade_df['股票名稱'] == option) & (trade_df['使用規則'] == rule)]
+        if not repeat_check.empty:
+            flash('不可重複添加報表')
+            return redirect(request.referrer)
+
     else:
         review = review_df[review_df['review_id'] == review_id].iloc[0]
         rule = review['使用規則']

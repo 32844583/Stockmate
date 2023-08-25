@@ -43,9 +43,13 @@
 
 .container {
   float: left;
-  width: 50%;
-  height: 75vh;
+  min-width: 100px;
+  min-height: 100px;
   background-color: #ACD6FF;
   border-radius: 10px;
 }
 
+.submit-div {
+    display: flex;
+    justify-content: center;
+}

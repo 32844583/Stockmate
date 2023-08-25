@@ -27,7 +27,7 @@
 .table-outbox table th {
   text-align: center; /* 文字置中顯示 */
   padding: 10px; /* 添加內距 */
-  font-size: 1.3em;
+  font-size: 1em;
 }
 
 .table-outbox table td {
@@ -41,12 +41,12 @@
   margin-left: 2%;
   margin-top: 1%;
   float: left;
-  width: 41%;
+  width: 45%;
 }
 .table-outbox {
   margin-top: 1%;
   float: left;
-  width: 56%;
+  width: 51%;
 }
 
 .table-outbox .submit-button {

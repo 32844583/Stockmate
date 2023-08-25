@@ -262,8 +262,13 @@
             type: 'scatter',
             name: '買點',
             marker: {
+                symbol: 'triangle-up-open', // 設定 marker 的形狀為空心三角形
                 size: 10,
-                color: 'green'
+                color: 'black',
+                line: { // 設定 marker 的框線屬性
+                  color: 'black', // 設定框線顏色
+                  width: 2 // 設定框線粗細
+                }
             },
             hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><br>%{text}<extra></extra>',
 
@@ -277,8 +282,13 @@
             type: 'scatter',
             name: '賣點',
             marker: {
+                symbol: 'triangle-down-open', // 設定 marker 的形狀為空心三角形
                 size: 10,
-                color: 'red'
+                color: 'black',
+                line: { // 設定 marker 的框線屬性
+                  color: 'black', // 設定框線顏色
+                  width: 2 // 設定框線粗細
+                }
             },
             hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><br>%{text}<extra></extra>',
         };

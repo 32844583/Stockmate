@@ -4,13 +4,61 @@
   <title>股票交易檢討系統</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/review_table_style.css') }}">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+    .box {
+      width: 120px;
+      height: 30px;
+      border: 1px solid #999;
+      font-size: 18px;
+      color: #5599FF;
+      background-color: #eee;
+      border-radius: 5px;
+      box-shadow: 4px 4px #ccc;
+      margin-top: 10px;
+    }
+    .form_div h2, h4{
+      margin-top: 10px;
+    }
 
+    .error {
+      color: red;
+      font-weight: bold;
+      opacity: 1;
+      transition: opacity 2s;
+      font-size: 2em;
+      margin-left: 42.5vw;
+
+    }
+    .fade-out {
+      opacity: 0;
+    }
+
+    .submit-button {
+          background-color: #46A3FF; /* 綠色 */
+          border: none;
+          color: white;
+          padding: 4px 20px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 0.9em;
+          margin: 4px 2px;
+          cursor: pointer;
+    }
+
+    .submit-button:hover {
+            background-color: #0072E3;
+    }
+
+
+</style>
 </head>
     {% include 'navbar.html' %}
 
 <body><!-- 下拉列表 -->
+
     <div class="table-outbox">
-    <h1>績效報表總攬</h1>
+    <h1>績效報表彙總</h1>
       <table>
         <thead>
           <tr>
@@ -19,7 +67,6 @@
             <th>獲利</th>
             <th>報酬率</th>
             <th>交易筆數</th>
-            <th>狀態</th>
             <th>使用規則</th>
             <th>編輯</th>
             <th>刪除</th>
@@ -33,18 +80,17 @@
                     <td>{{ review['獲利'] }}</td>
                     <td>{{ review['報酬率'] }}</td>
                     <td>{{ review['交易筆數'] }}</td>
-                    <td>{{ review['狀態'] }}</td>
                     <td>{{ review['使用規則'] }}</td>
                     <td>
                         <form action="{{ url_for('add_review', review_id=review['review_id']) }}" method="get">
                             <!-- 創建一個按鈕 -->
-                            <input type="submit" value="編輯交易">
+                            <input class="submit-button" type="submit" value="編輯">
                         </form>
                     </td>
                     <td>
                         <form action="{{ url_for('delete_review', review_id=review['review_id']) }}" method="get">
                             <!-- 創建一個按鈕 -->
-                            <input type="submit" value="刪除交易">
+                            <input class="submit-button" type="submit" value="刪除">
                         </form>
                     </td>
                     
@@ -54,25 +100,43 @@
 
         </tbody>
       </table>
-      
+      <div class="floor">
+        <button id="showButton" class='submit-button addbtn' >新增</button>
+      </div>
     </div>
-    <form action="{{ url_for('add_review') }}" method='get'>
-      <select id="rule" name="rule">
-        <option value="" selected disabled>卡組名稱</option>
+    <div class="form_div">
+      <form action="{{ url_for('add_review') }}" method='get'>
+        <h2 style="margin-left: 40%;">新增報表</h2>
+        <h4>卡組名稱:</h4>
+        <select id="rule" name="rule" class="box">
+          <option value="" selected disabled>卡組名稱</option>
+          {% for item in items %}
+          <option value="{{ item['使用規則'] }}">{{ item['使用規則'] }}</option>
+          {% endfor %}
+        </select>
 
-        {% for item in items %}
-        <option value="{{ item['使用規則'] }}">{{ item['使用規則'] }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- 選項列表 -->
-      <select id="options" name="options">
-        <option value="" selected disabled>股票名稱</option>
-      </select>
-      <input type="submit" value="Submit">
-  </form>
+        <h4>股票名稱:</h4>
+        <select id="options" name="options" class="box">
+            <option value="" selected disabled>股票名稱</option>
+        </select>
 
 
+        <div style="margin-top: 10px; margin-left: 11.5vw;">
+            <input class="submit-btn" type="submit" value="Submit">
+        </div>
+      </form>
+    </div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="error">
+          {% for message in messages %}
+          {% if message == '不可重複添加報表' %}
+            {{ message }}
+          {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
     <script>
     // 獲取下拉列表和選項列表元素
     const ruleSelect = document.querySelector('#rule');
@@ -99,7 +163,28 @@
           }
         });
     });
+
+      const formDiv = document.querySelector(".form_div");
+
+      document.getElementById("showButton").addEventListener("click", function() {
+          formDiv.style.opacity = '1';
+          formDiv.style.zIndex = "9999";
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!formDiv.contains(event.target) && event.target !== document.getElementById("showButton")) {
+          formDiv.style.opacity = '0';
+          formDiv.style.zIndex = "-1";
+        }
+      });
+
+    setTimeout(function() {
+      var errorDiv = document.querySelector('.error');
+      errorDiv.classList.add('fade-out');
+    }, 1000);
+
     </script>
+
 
 
 </body>
