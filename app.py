@@ -315,15 +315,6 @@ def cards():
         energy = request.form.get("energy", ' ')
         rule_name = request.form.get("rule_name", ' ')
 
-        # if trend == None:
-        #     trend = ' '
-        # if oscillators == None:
-        #     oscillators = ' '
-        # if volatility == None:
-        #     volatility = ' '
-        # if energy == None:
-        #     energy = ' '
-
         select_item = '-'.join([term, trend, oscillators, volatility, energy]) + '-custom-' + '-'.join(customs)
         # print(select_item.split('-'))
         # print(select_item)
@@ -344,6 +335,8 @@ def cards():
             }
             cards.loc[mask, data.keys()] = data.values()
             cards.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
+
+        card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
         print(f'--------------新增卡組-------------')
         print(f'目前卡組 \n {cards}')
         print(f'--------------新增卡組-------------')
@@ -366,32 +359,6 @@ def delete_card(card_id):
     df.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(url_for('cards'))
 
-@app.route('/edit_card/<int:card_id>', methods=['GET', 'POST'])
-@login_required
-def edit_card(card_id):
-    if request.method == 'GET':
-        df = pd.read_csv('cards.csv')
-        card = df[df['card_id'] == card_id]
-        cards = card.to_dict('records')
-        return render_template('edit_card.html', cards=cards)
-    else:
-        df = pd.read_csv('cards.csv', encoding='utf-8-sig')
-
-        rule = request.form.get("rule")
-        card_list = request.form.getlist('card_name') # 獲取勾選框的 value 列表
-        card_string = '-'.join(card_list) # 將列表中的元素用 '-' 串成一個字串
-
-        mask = df['card_id'] == card_id
-
-        data = {
-            '卡組名稱': rule,
-            '使用卡牌': card_string,
-        }
-
-        df.loc[mask, data.keys()] = data.values()
-        df.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
-
-        return redirect(url_for('cards'))
 
 @app.route('/add_trade', methods=['GET', 'POST'])
 @login_required
@@ -676,7 +643,7 @@ def add_review(review_id):
     # 通道指標
 
     if 'bbl' in default_list:
-        sell_df['bb_sell'] = sell_df['Close'] < sell_df['bb_bbl']
+        sell_df['bbl_sell'] = sell_df['Close'] < sell_df['bbl']
 
     if 'kc' in default_list:
         sell_df['kc_sell'] = sell_df['Close'] < sell_df['kc']
@@ -714,19 +681,21 @@ def add_review(review_id):
 
     buy_dict = {}
     for item in custom_list:
-        try:
-            buy_dict.update(calculate_probability(buy_df, "遵守", item))
-        except AttributeError:
-            print("目前沒有資料")
+        if '(賣)' not in item:
+            try:
+                buy_dict.update(calculate_probability(buy_df, "遵守", "違反", item))
+            except AttributeError:
+                print("目前沒有資料")
     buy_ratio = {col: buy_df[col].mean() for col in buy_df.columns if col.endswith('_buy')}
     buy_ratio.update(buy_dict)
 
     sell_dict = {}
     for item in custom_list:
-        try:
-            sell_dict.update(calculate_probability(sell_df, "遵守", item))
-        except AttributeError:
-            print("目前沒有資料")
+        if '(買)' not in item:
+            try:
+                sell_dict.update(calculate_probability(sell_df, "遵守", "違反", item))
+            except AttributeError:
+                print("目前沒有資料")
     sell_ratio = {col: sell_df[col].mean() for col in sell_df.columns if col.endswith('_sell')}
     sell_ratio.update(sell_dict)
 
@@ -734,25 +703,34 @@ def add_review(review_id):
     fig.update_layout(xaxis_title='Indicator Name',
         yaxis_title='True Probability',
         autosize=False,
-        width=600,
+        width=500,
         height=280,
         margin=dict(l=50, r=50, t=0, b=10),
-        )
+    )
 
+    fig2 = go.Figure([go.Bar(x=list(sell_ratio.keys()), y=list(sell_ratio.values()))])
+    fig2.update_layout(xaxis_title='Indicator Name',
+        yaxis_title='True Probability',
+        autosize=False,
+        width=500,
+        height=280,
+        margin=dict(l=50, r=50, t=0, b=10),
+    )
     print(f'--------------載入頁面-------------')
-    print(f'股票{stock_symbol}價格資料', stock_data.head(50))
+    print(f'買點執行率{buy_ratio}')
+    print(f'買點執行率{sell_ratio}')
     # print(f'所有交易點(顯示在圖表上的){trade_data}')
-    # print(f'買點資料: {buy_df}')
-    # print(f'賣點資料: {sell_df}')
+    print(f'買點資料: {buy_df}')
+    print(f'賣點資料: {sell_df}')
     print(f'--------------載入頁面-------------')
 
     if review_id == 9999:
-        return render_template('review_form.html', fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
 
     else:
         review = review_df[review_df['review_id'] == review_id]
         review = review.to_dict('records')
-        return render_template('review_form.html', fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
 
 
 def get_stock_basic_info(stock_name, rule):
@@ -776,9 +754,15 @@ def get_stock_basic_info(stock_name, rule):
     data['使用策略'] = trades['使用規則'].iloc[0]
     return data
 
-def calculate_probability(df, column, keyword):
-    count = df[column].str.contains(keyword).sum()
-    probability = count / len(df)
+def calculate_probability(df, follow, violate, keyword):
+    count1 = df[follow].str.contains(keyword, regex=False).sum()
+    count2 = df[violate].str.contains(keyword, regex=False).sum()
+    print(keyword, "的違反為", count2)
+    print(keyword, "的遵守為", count1)
+    if (count1 + count2) == 0:
+        probability = 0
+    else:
+        probability = count1 / (count1 + count2)
     result = {keyword: probability}
     return result
 
@@ -1072,17 +1056,6 @@ def update_custom():
     mask = (trade_df['user_id'] == user_id) & (trade_df['日期'] == date) & (trade_df['價格'] == float(price)) & (trade_df['買/賣'] == action[0])
     
 
-    # try:
-    #     follow_origin = str(trade_df.loc[mask, '遵守'].tolist()[0]).split('-')
-    #     follow_origin = [x for x in follow_origin if x != '' and x != 'nan']
-    # except IndexError:
-    #     follow_origin = []
-
-    # try:
-    #     violate_origin = str(trade_df.loc[mask, '違反'].tolist()[0]).split('-')
-    #     violate_origin = [x for x in violate_origin if x != '' and x != 'nan']
-    # except IndexError:
-    #     violate_origin = []
 
     follow_form = [k for k, v in data.items() if v == '遵守']
     violate_form = [k for k, v in data.items() if v == '違反']

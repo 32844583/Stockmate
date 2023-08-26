@@ -20,14 +20,19 @@
 <body>
     {% include 'navbar.html' %}
     <div class='grid-container'>
-<div class="graph1">
-    <h3>交易波段圖</h3>
-    <div id="plot"></div>
-</div>
-<div class="graph2">
-    <h3>執行分析圖</h3>
-    <div>{{ fig|safe }}</div>
-</div>
+            <div class="graph1">
+                <h3>交易波段圖</h3>
+                <div id="plot"></div>
+            </div>
+            <div class="graph2">
+                <div class="title">
+                    <h3>執行分析圖</h3>
+                    <button id="toggle-button">切換顯示</button>
+                </div>
+
+                <div id="fig">{{ fig|safe }}</div>
+                <div id="fig2" style="display: none;">{{ fig2|safe }}</div>
+            </div>
 <div class="block1">
     <div class="title">
         <h3>股票基本資料</h3>
@@ -214,7 +219,7 @@
     </form>
 </div>
 </div>
-        
+
 
 
 
@@ -306,13 +311,13 @@
                 title: '價格' 
             },
             // 調整圖表的寬度和高度
-            width: 550,
-            height: 400,
+            width: 500,
+            height: 250,
             margin: {
                 l: 50, // 左邊距
                 r: 50, // 右邊距
-                b: 100, // 下邊距
-                t: 100, // 上邊距
+                b: 0, // 下邊距
+                t: 50, // 上邊距
                 pad: 4 // 邊框與繪圖區域之間的額外空間
             },
                 sliders: [{
@@ -516,6 +521,23 @@
             document.getElementById("duration").value = duration;
 
       }
+
+        // 获取按钮和两个图形元素
+        var button = document.getElementById('toggle-button');
+        var fig = document.getElementById('fig');
+        var fig2 = document.getElementById('fig2');
+
+        // 监听按钮的点击事件
+        button.addEventListener('click', function() {
+            // 切换 fig 和 fig2 的显示状态
+            if (fig.style.display === 'none') {
+                fig.style.display = 'block';
+                fig2.style.display = 'none';
+            } else {
+                fig.style.display = 'none';
+                fig2.style.display = 'block';
+            }
+        });
     </script>
 </body>
 </html>

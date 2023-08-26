@@ -16,7 +16,6 @@ grid-template-areas:
     grid-area: graph1;
 }
 .graph2{
-    margin-top: 50px;
     grid-area: graph2;
     z-index: 9999;
 }
@@ -24,6 +23,7 @@ grid-template-areas:
     border: 1px solid #ddd;
     padding: 10px;
     margin-bottom: 20px;
+    overflow: auto;
 }
 
 .graph1 h2, .graph2 h2 {
@@ -33,6 +33,9 @@ grid-template-areas:
     font-weight: bold;
 }
 
+.graph2 .title{
+    display: flex;
+}
 
 .block1{
     grid-area: block1;
