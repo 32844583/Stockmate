@@ -33,6 +33,10 @@ grid-template-areas:
     font-weight: bold;
 }
 
+.graph1 .title{
+    display: flex;
+}
+
 .graph2 .title{
     display: flex;
 }
@@ -132,11 +136,11 @@ grid-template-areas:
     flex-direction: column;
     justify-content: space-between;
 }
-.block5 input[type="radio"] {
+.block5 input[type="checkbox"] {
     display: none;
 }
 
-.block5 input[type="radio"] + span {
+.block5 input[type="checkbox"] + span {
     display: inline-block;
     font-size: 20px;
     padding: 10px 20px;

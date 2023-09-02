@@ -56,10 +56,19 @@ login_manager.login_view = 'login'
 buy_df = pd.DataFrame()
 sell_df = pd.DataFrame()
 trade_df = pd.read_csv('trades.csv', encoding='utf-8-sig')
+
+current_dir = os.getcwd()
+filename = 'cards.csv'
+
+if not os.path.exists(os.path.join(current_dir, filename)):
+    df = pd.DataFrame(columns=["card_id", "user_id", "卡組名稱", "使用卡牌"])
+    df.to_csv("cards.csv", index=False, encoding='utf-8-sig')
+
 card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
+
 review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
-
-
+chart_data = 0
+trade_point = 0
 # Sample User class for Flask-Login
 class User(db.Model, UserMixin):
     __tablename__ = "users"
@@ -148,16 +157,20 @@ def index():
 
 
     df = trade_df.loc[(trade_df['股票代號'] == symbol) & (trade_df['user_id'] == user_id)]
-    df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
+    print(df)
+    if df.empty:
+        stock = twstock.Stock(symbol[:4]) # 台積電的股票代碼為 2330
+        data = stock.fetch_from(2023, 7) # 從 start_date 開始查詢
+    else:
+        df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
+        stock_symbol = symbol[:4]
 
-    stock_symbol = symbol[:4]
+        start_date = df['日期'].min() - relativedelta(months=2)
+        end_date = df['日期'].max() + relativedelta(days=2)
+        stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
+        data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
 
-    start_date = df['日期'].min() - relativedelta(months=2)
-    end_date = df['日期'].max() + relativedelta(days=2)
-    stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
-    data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
-
-    data = [d for d in data if start_date <= d.date <= end_date]
+        data = [d for d in data if start_date <= d.date <= end_date]
     data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
     
     data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
@@ -281,14 +294,11 @@ def update():
     return render_template('cards.html', card_item=card_item, cards=cards)
 
 
-
 @app.route('/cards', methods=['POST', 'GET'])
 @login_required
 def cards():
     global card_df
     user_id = int(current_user.get_id())
-    current_dir = os.getcwd()
-    filename = 'cards.csv'
     cards = card_df.loc[(card_df['user_id'] == user_id)]
     customs = cards['使用卡牌'].tolist()
 
@@ -302,9 +312,6 @@ def cards():
             if item not in custom_list:
                 custom_list.append(item)
 
-    if not os.path.exists(os.path.join(current_dir, filename)):
-        df = pd.DataFrame(columns=["card_id", "user_id", "卡組名稱", "使用卡牌"])
-        df.to_csv("cards.csv", index=False, encoding='utf-8-sig')
 
     if request.method == 'POST':
         customs = request.form.getlist('item')
@@ -314,21 +321,21 @@ def cards():
         volatility = request.form.get("volatility", ' ')
         energy = request.form.get("energy", ' ')
         rule_name = request.form.get("rule_name", ' ')
+        card_id = request.form.get("card_id", ' ')
 
         select_item = '-'.join([term, trend, oscillators, volatility, energy]) + '-custom-' + '-'.join(customs)
         # print(select_item.split('-'))
         # print(select_item)
 
-        mask = cards['卡組名稱'] == rule_name
 
-
-        if cards.loc[mask].empty:
+        if card_id == "" :
             card_id = card_df.shape[0]
             cards = pd.DataFrame([[card_id, user_id, rule_name, select_item]], \
                 columns=["card_id", "user_id", "卡組名稱", "使用卡牌"])
             cards.to_csv('cards.csv', mode='a', encoding='utf-8-sig', index=False, header=False)
 
         else:
+            mask = cards['card_id'] == int(card_id)
             data = {
                 '卡組名稱': rule_name,
                 '使用卡牌': select_item,
@@ -351,18 +358,68 @@ def cards():
     cards =cards.to_dict(orient='records')
     return render_template('cards.html', cards=cards, custom_list=custom_list)
 
+
+@app.route('/delete_component', methods=['GET', 'POST'])
+def delete_component():
+    global card_df, trade_df
+
+    user_id = int(current_user.get_id())
+    cards = card_df.loc[(card_df['user_id'] == user_id)]
+    customs = cards['使用卡牌'].tolist()
+    custom_list = []
+
+    component = str(request.form['component'])
+
+    for custom in customs:
+        temp = custom.split('-')
+        index = temp.index('custom')+1
+        # print(custom.split('-').index('custom')+1)
+        for item in temp[index:]:
+            if item not in custom_list:
+                custom_list.append(item)
+
+    print(f'--------------刪除卡牌-------------')
+    print(f'刪除卡牌 {component}')
+    print(trade_df['遵守'].str.contains(component, regex=False).any())
+    print(f'--------------刪除卡牌-------------')
+
+    if trade_df['遵守'].str.contains(component, regex=False).any() | trade_df['違反'].str.contains(component, regex=False).any():
+        flash('不可刪除套用在交易上的卡牌')
+        return redirect(request.referrer)
+    else:
+        card_df['使用卡牌'] = card_df['使用卡牌'].replace(component, '', regex=True)
+        return redirect(url_for('cards'))
+
+
+
+
 @app.route('/delete_card/<int:card_id>', methods=['GET', 'POST'])
 @login_required
 def delete_card(card_id):
-    df = pd.read_csv('cards.csv', encoding='utf-8-sig')
-    df = df[~(df['card_id'] == card_id)]
-    df.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
+    global card_df, trade_df
+    user_id = int(current_user.get_id())
+    rule = card_df.loc[card_df['card_id']==card_id, "卡組名稱"].iloc[0]
+
+    check = trade_df.loc[(trade_df['使用規則'] == str(rule))]
+
+    if not check.empty:
+        flash('不可刪除正在使用的策略')
+        return redirect(request.referrer)
+
+    print(f'--------------刪除卡組-------------')
+    print(f'刪除卡組 \n {card_id}')
+    print(f'刪除卡組 \n {check}')
+    print(f'刪除卡組 \n {rule}')
+    print(f'--------------刪除卡組-------------')
+    card_df = card_df[(~(card_df['card_id'] == card_id) & (card_df['user_id'] == user_id))]
+    card_df.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(url_for('cards'))
 
 
 @app.route('/add_trade', methods=['GET', 'POST'])
 @login_required
 def add_trade():
+    global trade_df
     user_id = int(current_user.get_id())
     date = request.form.get("date")
     date = date.replace('-', '/')
@@ -378,6 +435,7 @@ def add_trade():
     df = pd.DataFrame([[trade_id, user_id, date, stock_symbol, stock_name, price, quantity, action, reason, rule, "", "", ""]], \
         columns=["trade_id", "user_id", "日期", "股票代號", "股票名稱", "價格", "數量", "買/賣", "原因", "使用規則", "遵守", "違反", "待決定"])
     df.to_csv("trades.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
+    trade_df = pd.read_csv('trades.csv', encoding='utf-8-sig')
     return redirect(request.referrer)
 
 # 定義一個路由和函數來處理刪除交易的請求
@@ -459,9 +517,9 @@ def check_point():
     global trade_df
     user_id = int(current_user.get_id())
     data = request.get_json()
-    print(f'--------------按下點位-------------')
-    print(f'資料: {data}')
-    print(f'--------------按下點位-------------')
+    # print(f'--------------按下點位-------------')
+    # print(f'資料: {data}')
+    # print(f'--------------按下點位-------------')
     if data['type'] == 'sell':
         action = '賣'
     else:
@@ -471,7 +529,9 @@ def check_point():
     options = data['option']
     date = data['date'].replace('-', '/').replace('/0', '/')
     point_data = one_point_indicator_detail(user_id, options, date, data['price'], action, rule)
-
+    print(f'--------------按下點位-------------')
+    print(f'資料: {point_data}')
+    print(f'--------------按下點位-------------')
     return jsonify(point_data)
 @app.route('/add_review', defaults={'review_id': 9999}, methods=['GET', 'POST'])
 @app.route('/add_review/<int:review_id>', methods=['GET', 'POST'])
@@ -482,26 +542,30 @@ def add_review(review_id):
     if review_id == 9999:
         rule = request.args.get('rule')
         option = request.args.get('options')
-        repeat_check = review_df.loc[(trade_df['股票名稱'] == option) & (trade_df['使用規則'] == rule)]
+        repeat_check = review_df.loc[(review_df['股票名稱'] == option) & (review_df['使用規則'] == rule)]
         if not repeat_check.empty:
             flash('不可重複添加報表')
             return redirect(request.referrer)
 
     else:
         review = review_df[review_df['review_id'] == review_id].iloc[0]
-        rule = review['使用規則']
-        option = review['股票名稱']
+        rule = str(review['使用規則'])
+        option = str(review['股票名稱'])
 
     cards = card_df.loc[card_df['卡組名稱'] == rule]
     data = cards['使用卡牌'].values[0].split('-')
     term = data[0]
+    # print("---------------編輯頁面---------------")
+    # print("trade_data \n ", trade_df)
+    # print("---------------編輯頁面---------------")
+
     df = trade_df.loc[(trade_df['股票名稱'] == option) & (trade_df['使用規則'] == rule) & (trade_df['user_id'] == user_id)]
     df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
 
     # twstock 只取數字
     stock_symbol = df['股票代號'].iloc[0][:4]
 
-    start_date = df['日期'].min() - relativedelta(months=2)
+    start_date = df['日期'].min() - relativedelta(months=3)
     end_date = df['日期'].max() + relativedelta(days=2)
 
     stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
@@ -514,7 +578,13 @@ def add_review(review_id):
     # 去掉無用欄位並且轉換 datetime => string
     stock_data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
     stock_data = stock_data.rename(columns={'Date': '日期'})
+
+    stock_copy = stock_data.copy()
+    stock_copy['日期'] = pd.to_datetime(stock_copy['日期'])
+    stock_copy['日期'] = stock_copy['日期'].dt.strftime('%Y/%m/%d')
+
     stock_data['日期'] = stock_data['日期'].dt.strftime('%Y-%m-%d')
+
 
     # ======================================== #
     card_list = cards['使用卡牌'].tolist()[0].split('-')
@@ -522,56 +592,79 @@ def add_review(review_id):
     custom_list = []
     custom_index = card_list.index("custom")
     # print(custom.split('-').index('custom')+1)
+
+
+
+
+
     custom_list = card_list[custom_index+1:]
     default_list = card_list[:custom_index]
     if term == 'short':
         args_day = 5
-    else:
+    elif term == 'medium':
         args_day = 20
+    else:
+        args_day = 50
 
     # 趨勢指標
     if 'sma' in default_list:
-        stock_data['sma'] = ta.sma(stock_data['Close'], length=args_day)
+        stock_copy['sma'] = ta.sma(stock_copy['Close'], length=args_day)
 
     if 'ema' in default_list:
-        stock_data['ema'] = ta.ema(stock_data['Close'], length=args_day)
+        stock_copy['ema'] = ta.ema(stock_copy['Close'], length=args_day)
 
     if 'wma' in default_list:
-        stock_data['wma'] = ta.wma(stock_data['Close'], length=args_day)
+        stock_copy['wma'] = ta.wma(stock_copy['Close'], length=args_day)
 
     if 'hma' in default_list:
-        stock_data['hma'] = ta.hma(stock_data['Close'], length=args_day)
+        stock_copy['hma'] = ta.hma(stock_copy['Close'], length=args_day)
 
     # 震盪指標
     if 'rsi' in default_list:
-        stock_data['rsi'] = ta.rsi(stock_data['Close'], length=args_day)
+        stock_copy['rsi'] = ta.rsi(stock_copy['Close'], length=args_day)
 
     if 'stoch' in default_list:
-        stock_data[['slowk', 'slowd']] = ta.stoch(stock_data['High'], stock_data['Low'], stock_data['Close'], fastk_period=args_day, slowk_period=3, slowd_period=3)
+        stock_copy[['slowk', 'slowd']] = ta.stoch(stock_copy['High'], stock_copy['Low'], stock_copy['Close'], fastk_period=args_day, slowk_period=3, slowd_period=3)
     
     if 'cci' in default_list:
-        stock_data['cci'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
+        stock_copy['cci'] = ta.cci(stock_copy['High'], stock_copy['Low'], stock_copy['Close'], length=args_day)
 
     # 通道指標
     if 'bbl' in default_list:
-        stock_data[['bbm', 'bbh', 'bbl', 'bbb', 'bbp']] = ta.bbands(stock_data['Close'], length=args_day)
+        stock_copy[['bbm', 'bbh', 'bbl', 'bbb', 'bbp']] = ta.bbands(stock_copy['Close'], length=args_day)
     
     if 'kc' in default_list:
-        stock_data[['kc', 'kcb', 'kct']] = ta.kc(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
+        stock_copy[['kc', 'kcb', 'kct']] = ta.kc(stock_copy['High'], stock_copy['Low'], stock_copy['Close'], length=args_day)
 
 
     # 能量指標
     if 'cmf' in default_list:
-        stock_data['cmf'] = ta.cmf(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+        stock_copy['cmf'] = ta.cmf(stock_copy['High'], stock_copy['Low'], stock_copy['Close'], stock_copy['Volume'], length=args_day)
     
     if 'mfi' in default_list:
-        stock_data['mfi'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+        stock_copy['mfi'] = ta.mfi(stock_copy['High'], stock_copy['Low'], stock_copy['Close'], stock_copy['Volume'], length=args_day)
     
+
+    stock_data = stock_data[['日期', 'Open','High','Low','Close','Volume']]
+
+    stock_data = stock_data.rename(columns={'日期': 'date'})
+    stock_data = stock_data.rename(columns={'Open': 'open'})
+    stock_data = stock_data.rename(columns={'High': 'high'})
+    stock_data = stock_data.rename(columns={'Low': 'low'})
+    stock_data = stock_data.rename(columns={'Close': 'close'})
+
+
+    stock_data['MA5'] = stock_data['close'].rolling(window=5).mean()
+    stock_data['MA20'] = stock_data['close'].rolling(window=20).mean()
+    stock_data['MA50'] = stock_data['close'].rolling(window=50).mean()
+    stock_data['MA60'] = stock_data['close'].rolling(window=60).mean()
+    data = stock_data.to_json(orient='records')
+
 
     # stock_data 的日期為 object 型態(為了讓 plotly.js 顯示)
     df['日期'] = df['日期'].apply(lambda x: x.strftime('%Y/%m/%d'))
+    df = pd.merge(df, stock_copy, how='left', on='日期')
 
-    df = pd.merge(df, stock_data, how='left', on='日期')
     buy_df = df.loc[df['買/賣'] == '買']
 
     # 趨勢指標
@@ -656,17 +749,6 @@ def add_review(review_id):
         sell_df['mfi_sell'] = sell_df['mfi'] < 80
 
     # ======================================== #
-    stock_data = stock_data[['日期', 'Open','High','Low','Close','Volume']]
-
-    stock_data = stock_data.rename(columns={'日期': 'date'})
-    stock_data = stock_data.rename(columns={'Open': 'open'})
-    stock_data = stock_data.rename(columns={'High': 'high'})
-    stock_data = stock_data.rename(columns={'Low': 'low'})
-    stock_data = stock_data.rename(columns={'Close': 'close'})
-
-
-    stock_data['MA5'] = stock_data['close'].rolling(window=5).mean()
-    stock_data['MA20'] = stock_data['close'].rolling(window=20).mean()
 
     trade_data = trade_df.loc[(trade_df['股票名稱'] == option) & (trade_df['使用規則'] == rule)]
 
@@ -676,9 +758,11 @@ def add_review(review_id):
     trade_data['type'] = trade_data['買/賣'].replace({'買': 'buy', '賣': 'sell'})
     basic_info = get_stock_basic_info(option, rule)
 
-    data = stock_data.to_json(orient='records')
     trade_data = trade_data.to_json(orient='records')
-
+    buy_df['遵守'] = df['遵守'].astype('object')
+    buy_df['違反'] = df['違反'].astype('object')
+    sell_df['遵守'] = df['遵守'].astype('object')
+    sell_df['違反'] = df['違反'].astype('object')
     buy_dict = {}
     for item in custom_list:
         if '(賣)' not in item:
@@ -688,6 +772,7 @@ def add_review(review_id):
                 print("目前沒有資料")
     buy_ratio = {col: buy_df[col].mean() for col in buy_df.columns if col.endswith('_buy')}
     buy_ratio.update(buy_dict)
+
 
     sell_dict = {}
     for item in custom_list:
@@ -716,12 +801,16 @@ def add_review(review_id):
         height=280,
         margin=dict(l=50, r=50, t=0, b=10),
     )
+
+    global chart_data, trade_point
+    chart_data = data
+    trade_point = trade_data
     print(f'--------------載入頁面-------------')
     print(f'買點執行率{buy_ratio}')
     print(f'買點執行率{sell_ratio}')
     # print(f'所有交易點(顯示在圖表上的){trade_data}')
-    print(f'買點資料: {buy_df}')
-    print(f'賣點資料: {sell_df}')
+    print(f'買點資料: ', buy_df['Close'])
+
     print(f'--------------載入頁面-------------')
 
     if review_id == 9999:
@@ -731,6 +820,13 @@ def add_review(review_id):
         review = review_df[review_df['review_id'] == review_id]
         review = review.to_dict('records')
         return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+
+@app.route('/view_chart', methods=['GET'])
+def view_chart():
+    global chart_data, trade_point
+    data = chart_data
+    trade_data = trade_point
+    return render_template('view_chart.html',  data=data, trade_data=trade_data)
 
 
 def get_stock_basic_info(stock_name, rule):
@@ -787,6 +883,11 @@ def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
     custom_list = []
     custom_index = card_list.index("custom")
     custom_list = card_list[custom_index+1:]
+    # print(f'--------------按下點位-------------')
+    # print(f'sells: ', sells)
+    # print(f'buys: ', buys)
+    # print(f'--------------按下點位-------------')
+
     buys['日期'] = buys['日期'].str.replace("/0", "/")
     sells['日期'] = sells['日期'].str.replace("/0", "/")
 
@@ -962,11 +1063,12 @@ def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
 
     point_data = remove_nan(point_data)
 
-    # print(f'--------------按下點位-------------')
-    # print(f'目前策略的所有卡牌: {card_list}')
-    # print(f'目前策略的客製卡牌: {custom_list}')
-    # print(f'輸出: {point_data}')
-    # print(f'--------------按下點位-------------')
+    print(f'--------------按下點位-------------')
+    print(f'目前策略的所有卡牌: {card_list}')
+    print(f'目前策略的客製卡牌: {custom_list}')
+    # print(f'輸出: ',buys['sma'], buys['Close'].tolist())
+    # print(f'輸出: ',sells['sma'], sells['Close'].tolist())
+    print(f'--------------按下點位-------------')
 
     return point_data
 

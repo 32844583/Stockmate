@@ -1,8 +1,5 @@
 ﻿card_id,user_id,卡組名稱,使用卡牌
-0,2,我的策略一,short-wma-cci-bbl-mfi-custom-穿越季線-穿越半年線-穿過周線(買)-穿越周線(賣)
-1,2,我的策略二,short-sma-stoch-kc-cmf-custom-穿越半年線-穿過周線(買)
-2,2,我的策略三, -sma-rsi-bbl-cmf-custom-穿越半年線-穿過周線(買)-穿越周線(賣)
-3,2,我的策略四, - - - - -custom-穿越季線-穿越半年線-RSI>80賣出RSI<20買入
-4,2,我的策略五, -ema-rsi-bbl-cmf-custom-穿越半年線-穿過周線(買)-10MA周線
-5,2,我的策略六, -sma-rsi- - -custom-
-6,2,我的策略七, -sma- -bbl-cmf-custom-
+0,2,test2, -sma- - - -custom-
+4,2,usecase3, - - - - -custom-三均線向上(買)-三均線向上(賣)-頭頭高底底高(買)-頭頭低底底低(賣)-K(9)<20(買)-K(9)>80(賣)
+2,2,usecase2, -sma-stoch- - -custom-dsa
+3,2,usecase1, - - -kc-mfi-custom-

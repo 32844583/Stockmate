@@ -6,31 +6,107 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/card_table_style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/card_form_style.css') }}">
+<style>
+    .form_div h2, h4{
+      margin-top: 10px;
+    }
 
+    .error {
+      color: red;
+      font-weight: bold;
+      opacity: 1;
+      transition: opacity 2s;
+      font-size: 2em;
+      margin-left: 42.5vw;
+
+    }
+    .fade-out {
+      opacity: 0;
+    }
+
+    .checkboxes label {
+        display: inline-block;
+        margin-top: 30px;
+    }
+
+    .checkboxes span {
+        border: 1px dashed black;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .checkboxes .title {
+        background-color: #F0E68C;
+    }
+
+    .checkboxes input[type="checkbox"]:checked + span {
+        background-color: #87CEEB;
+        color: white;
+    }
+
+    .checkboxes input[type="checkbox"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    .checkboxes input[type="checkbox"]:checked:before {
+      content: "";
+    }
+
+
+    .checkboxes input[type="radio"]:checked + span {
+        background-color: #ADD8E6;
+        color: white;
+    }
+
+    .checkboxes input[type="radio"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    .checkboxes input[type="radio"]:checked:before {
+      content: "";
+    }
+
+
+    .block {
+      height: 6vh;
+      width: 100%;
+      margin: 5px;
+      padding-left: 1vw;
+    }
+
+    .block input[type="text"] {
+        width: 10vw;
+    }
+    .big-btn{
+        width: 10vw;
+    }
+
+
+    .cardNamelabel{
+        margin-left: 0vw;
+    }
+</style>
 </head>
 <body>
 {% include 'navbar.html' %}
-<h1>所有卡組</h1>
+<h2 style="margin-left: 45vw; margin-bottom: 10px; margin-top: 10px;">所有卡組</h2>
 {% set amount = cards|length %}
 <div class='rules'>
-{% for i in range(cards|length) %}
-    <div class="btn-group col-xs-12">
-        <label class="option">
-          <input type="radio" name="radiobox-group" id="form-{{ i }}"><span class="btn btn-warning btn-option"> {{cards[i]['卡組名稱']}}
-        </label>
+    {% for i in range(cards|length) %}
+        <div class="checkboxes">
+            <label><input type="radio" id="form-{{ i }}" name="radiobox-group"> <span class="os">{{cards[i]['卡組名稱']}}</span></label>
+        </div>
+    {% endfor %}
+
+    <div class="checkboxes">
+        <label><input type="radio" id="form-{{ amount }}" name="radiobox-group"> <span class="os">新增卡組</span></label>
     </div>
-    <p></p>
-{% endfor %}
-
-
-<div class="btn-group col-xs-12">
-    <label class="option">
-      <input type="radio" name="radiobox-group" id="form-{{ amount }}"><span class="btn btn-warning btn-option"> +
-    </label>
 </div>
-<p></p>
-</div>
-<!-- Forms -->
+
 {% for i in range(cards|length + 1) %}
 {% if cards[i] %}
     {% set list = cards[i]['使用卡牌'].split('-') %}
@@ -41,127 +117,133 @@
 <div class="container" id="form-{{ i }}-form" style="display: none;">
 
 <form id='form{{ i }}' action="{{ url_for('cards') }}" method='post'>
+    <div class="left" >
 
+    <div class="checkboxes">
+        <span class='title'>投資期間</span>
+        <label><input type="radio" name="term" value="long" {% if 'long' in list %} checked {% endif %}> <span class="os">長期(50)</span></label>
+        <label><input type="radio" name="term" value="medium" {% if 'medium' in list %} checked {% endif %}> <span class="os">中期(20)</span></label>
+        <label><input type="radio" name="term" value="short" {% if 'short' in list %} checked {% endif %}> <span class="os">短期(5)</span></label>
+    </div>
+
+    <div class="checkboxes">
+        <span class='title'>趨勢指標</span>
+        <label><input type="checkbox" name="trend" value="sma" {% if 'sma' in list %} checked {% endif %}> <span class="os">穿越SMA</span></label>
+        <label><input type="checkbox" name="trend" value="ema" {% if 'ema' in list %} checked {% endif %}> <span class="os">穿越EMA</span></label>
+        <label><input type="checkbox" name="trend" value="wma" {% if 'wma' in list %} checked {% endif %}> <span class="os">穿越WMA</span></label>
+        <label><input type="checkbox" name="trend" value="hma" {% if 'hma' in list %} checked {% endif %}> <span class="os">穿越HMA</span></label>
+    </div>
+
+    <div class="checkboxes">
+        <span class='title'>震盪指標</span>
+        <label><input type="checkbox" name="oscillators" value="rsi" {% if 'rsi' in list %} checked {% endif %}> <span class="os">RSI強弱</span></label>
+        <label><input type="checkbox" name="oscillators" value="stoch" {% if 'stoch' in list %} checked {% endif %}> <span class="os">STOCH強弱</span></label>
+        <label><input type="checkbox" name="oscillators" value="cci" {% if 'cci' in list %} checked {% endif %}> <span class="os">CCI強弱</span></label>
+    </div>
+
+
+    <div class="checkboxes">
+        <span class='title'>通道指標</span>
+        <label><input type="checkbox" name="volatility" value="bbl" {% if 'bbl' in list %} checked {% endif %}> <span class="os">穿越BBL</span></label>
+        <label><input type="checkbox" name="volatility" value="kc" {% if 'kc' in list %} checked {% endif %}> <span class="os">穿越KC</span></label>
+    </div>
+
+
+    <div class="checkboxes">
+        <span class='title'>能量指標</span>
+        <label><input type="checkbox" name="energy" value="cmf" {% if 'cmf' in list %} checked {% endif %}> <span class="os">CMF強弱</span></label>
+        <label><input type="checkbox" name="energy" value="mfi" {% if 'mfi' in list %} checked {% endif %}> <span class="os">MFI強弱</span></label>
+    </div>
+
+    <div class="checkboxes" id='custom{{ i }}'>
+        <span class='title'>自定義選項</span>
+
+        {% for j in range(custom_list|length) %}
+            {% if custom_list[j] != '' %}
+                <label><input type="checkbox" id="item_{{ i }}_{{ j }}" name='item' value="{{ custom_list[j] }}" {% if custom_list[j] in list %} checked {% endif %} ><span class="os">{{ custom_list[j] }}</span></label>
+            {% endif %}
+        {% endfor %}
+    </div>
+    </div>
+
+    <div class="right" >
+  <div class="block">
+    <label class="cardNamelabel" style="margin-left: 3vw;"><h3>名稱</h3></label>
+
+    </div>
+
+  <div class="block">
     {% if cards[i] %}
-
-    <div style="display:none">
-        <label class="option">
-          <input type="radio" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked/>
-        </label>
-    </div>
+        <input style="display: none" type="text" value='{{ cards[i]["card_id"] }}' name="card_id" checked/>
+        <input type="text" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked/>
     {% else %}
-    <label for="rule_name">卡組名稱:</label>
-
-    <input type="text" id="rule_name" name="rule_name" required><br>
+        <input style="display: none" type="text" value='' name="card_id" checked/>
+        <input type="text" id="rule_name" name="rule_name" placeholder="輸入策略名稱" / required><br>
     {% endif %}
-    <label class="optest">
-        <input type="radio" disabled><span class="test">投資期間</span>
-    </label>
-    <div class="btn-group col-xs-12">
-
-        <label class="option">
-            <input type="radio" value='long' name="term" {% if 'long' in list %} checked {% endif %}><span class="btn btn-warning btn-option">長期(20)</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='short' name="term" {% if 'short' in list %} checked {% endif %}><span class="btn btn-warning btn-option">短期(5)</span>
-        </label>
-    </div>
-    <p></p>
-    <label class="optest">
-        <input type="radio" disabled><span class="test">趨勢指標</span>
-    </label>
-    <div class="btn-group col-xs-12">
-        <label class="option">
-            <input type="radio" value='sma' name="trend" {% if 'sma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越SMA</span>
-        </label>
-
-        <label class="option">
-            <input type="radio" value='ema' name="trend" {% if 'ema' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越EMA</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='wma' name="trend" {% if 'wma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越WMA</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='hma' name="trend" {% if 'hma' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越HMA</span>
-        </label>
-    </div>
-    <p></p>
-    <label class="optest">
-        <input type="radio" disabled><span class="test">震盪指標</span>
-    </label>
-    <div class="btn-group col-xs-12">
-        <label class="option">
-            <input type="radio" value='rsi' name="oscillators" {% if 'rsi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">RSI強弱</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='stoch' name="oscillators" {% if 'stoch' in list %} checked {% endif %}><span class="btn btn-warning btn-option">STOCH強弱</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='cci' name="oscillators" {% if 'cci' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CCI強弱</span>
-        </label>
-    </div>
-    <p></p>
-    <label class="optest">
-        <input type="radio" disabled><span class="test">通道指標</span>
-    </label>
-    <div class="btn-group col-xs-12">
-        <label class="option">
-            <input type="radio" value='bbl' name="volatility" {% if 'bbl' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越BBL</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='kc' name="volatility" {% if 'kc' in list %} checked {% endif %}><span class="btn btn-warning btn-option">穿越KC</span>
-        </label>        
-    </div>
-    <p></p>
-    <label class="optest">
-        <input type="radio" disabled><span class="test">能量指標</span>
-    </label>
-
-    <div class="btn-group col-xs-12">
-        <label class="option">
-            <input type="radio" value='cmf' name="energy" {% if 'cmf' in list %} checked {% endif %}><span class="btn btn-warning btn-option">CMF強弱</span>
-        </label>
-        <label class="option">
-            <input type="radio" value='mfi' name="energy" {% if 'mfi' in list %} checked {% endif %}><span class="btn btn-warning btn-option">MFI強弱</span>
-        </label>        
-    </div>
-    <p></p>
-    <label class="optest">
-        <input type="radio" disabled><span class="test">自定義選項</span>
-    </label>
-
     
-    <div class="btn-group col-xs-12" id='custom{{ i }}'>
-    {% for j in range(custom_list|length) %}
-        {% if custom_list[j] != '' %}
-          <div class="select">
-              <input type="checkbox" id="item_{{ i }}_{{ j }}" name='item' value="{{ custom_list[j] }}" {% if custom_list[j] in list %} checked {% endif %} >
-              <label class="btn btn-warning button_select" for="item_{{ i }}_{{ j }}">{{ custom_list[j] }}</label>
-          </div>
-        {% endif %}
-    {% endfor %}
     </div>
-
-
-    <form id="myForm">
-    <input type="text" id="myText{{ i }}" placeholder="Enter some text">
-    <button type="button" id="myButton" class='btn addoption' onclick="addOption({{ i }})">自訂策略</button>
-    </form>
-    <p></p>
-    <div class='submit-div'>
-        <button type="submit" class='btn submit' onclick="submit_form({{ i }})">提交</button>
-    </div>
-
 </form>
+
+      <form action="{{ url_for('delete_component') }}" method='post'>
+<div class="block">
+
+<select id="component" name="component" class="box">
+<option value="" selected disabled>選擇刪除項目</option>
+{% for j in range(custom_list|length) %}
+    {% if custom_list[j] != '' %}
+        <option value="{{ custom_list[j] }}">{{ custom_list[j] }}</option>
+    {% endif %}
+{% endfor %}
+</select>
 </div>
+
+<div class="block">
+<input type="submit" class="big-btn" value="刪除項目">
+</div>
+      </form>
+  <form id="myForm">
+  <div class="block">
+    <input type="text" id="myText{{ i }}" placeholder="輸入添加項目">
+  </div>
+  <div class="block">
+    <input type="button"  class="big-btn" onclick="addOption({{ i }})"  value="添加項目" />
+  </div>
+  </form>
+
+  <div class="block">
+    <button type="submit" class="big-btn"  onclick="submit_form({{ i }})">更新策略</button>
+  </div>
+  <div class="block">
+    {% if cards[i] %}
+      <form  action="{{ url_for('delete_card', card_id=cards[i]['card_id']) }}" method='get'>
+        <input type="submit" class="big-btn" value="刪除策略">
+      </form>
+    {% endif %}
+  </div>
+
+
+
+
+
+    </div>
+
+</div>
+
+
 {% endfor %}
 
-
-
-
-
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="error">
+              {% for message in messages %}
+              {% if message == '不可刪除正在使用的策略' or message == '不可刪除套用在交易上的卡牌' %}
+                {{ message }}
+              {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
     <script>
-var radios = document.querySelectorAll('input[type=radio]');
 
     // 獲取所有的 radiobox 和 form
     const radioboxes = document.querySelectorAll('input[type=radio][name="radiobox-group"]');
@@ -178,37 +260,42 @@ var radios = document.querySelectorAll('input[type=radio]');
     });
 
 function addOption(index) {
-    // get the text input value
     var text = document.getElementById("myText" + index).value;
-    console.log( document.getElementById("myText"))
-    console.log(text)
-    // create a new label element
+
     var label = document.createElement("label");
-    label.className = "option";
-    // create a new input element
+
     var input = document.createElement("input");
     input.type = "checkbox";
     input.name = "item";
     input.value = text;
 
-    // create a new span element
     var span = document.createElement("span");
-    span.className = "btn btn-warning btn-option";
-    console.log(text)
+    span.className = "os";
     span.textContent = text;
-    // append the input and span to the label
+
     label.appendChild(input);
     label.appendChild(span);
-    // get the div element
+
+
     var div = document.getElementById("custom" + index);
-    // append the label to the div
     div.appendChild(label);
-    console.log(label)
+
 }
 function submit_form(index) {
     var form = document.getElementById("form" + index);
     form.submit();
 }
+
+function submit_delete_form(index) {
+    var form = document.getElementById("delete_form" + index);
+    form.submit();
+}
+  var errorDiv = document.querySelector('.error');
+console.log(errorDiv)
+setTimeout(function() {
+  var errorDiv = document.querySelector('.error');
+  errorDiv.classList.add('fade-out');
+}, 1000);
 </script>
 </body>
 </html>
