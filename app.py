@@ -142,31 +142,32 @@ def register():
     return render_template('register.html', form=form)
 
 
-# Sample route to display stock data and candlestick chart
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
     global  trade_df
     user_id = int(current_user.get_id())
-
-    symbol = '2330.TW'
-    if request.method == 'POST':
-        symbol = request.form.get("symbol")
+    symbol = "2330.TW"
+    if request.method=='POST':
+        symbol = request.form['symbol']
 
     # -----------------取得資料----------------#
 
 
     df = trade_df.loc[(trade_df['股票代號'] == symbol) & (trade_df['user_id'] == user_id)]
-    print(df)
+
     if df.empty:
+        print(df)
         stock = twstock.Stock(symbol[:4]) # 台積電的股票代碼為 2330
         data = stock.fetch_from(2023, 7) # 從 start_date 開始查詢
     else:
-        df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
+        temp = pd.DataFrame()
+        temp['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
         stock_symbol = symbol[:4]
-
-        start_date = df['日期'].min() - relativedelta(months=2)
-        end_date = df['日期'].max() + relativedelta(days=2)
+        start_date = temp['日期'].min() - relativedelta(months=2)
+        end_date = temp['日期'].max() + relativedelta(days=2)
+        print(start_date)
+        print(end_date)
         stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
         data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
 
@@ -174,6 +175,7 @@ def index():
     data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
     
     data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
+    print(data)
 
     # -----------------取得資料----------------#
     dt_all = pd.date_range(start=data['Date'].iloc[0],end=data['Date'].iloc[-1])
@@ -244,32 +246,30 @@ def index():
 
         df.to_csv("trades.csv", index=False, encoding='utf-8-sig')
 
-    df = pd.read_csv('trades.csv', encoding='utf-8-sig')
-    trade_df = df[(df['user_id'] == user_id) & (df['股票名稱'] == stock_name)]
-    trade_df['日期'] = trade_df['日期'].str.replace("-", "/")
+    df['日期'] = df['日期'].str.replace("-", "/")
 
-    trade_df['日期'] = pd.to_datetime(trade_df['日期'])
+    df['日期'] = pd.to_datetime(df['日期'])
 
-    fig.add_trace(go.Scatter(x=trade_df.loc[trade_df['買/賣'] == '買', '日期'],
-    y=trade_df.loc[trade_df['買/賣'] == '買', '價格'],
+    fig.add_trace(go.Scatter(x=df.loc[df['買/賣'] == '買', '日期'],
+    y=df.loc[df['買/賣'] == '買', '價格'],
     mode='markers',
     marker=dict(symbol='triangle-up-open', color='black', line=dict(color='black', width=2), size=10),
-    text=trade_df.loc[trade_df['買/賣'] == '買', '買/賣'],
-    customdata=trade_df.loc[trade_df['買/賣'] == '買', ['數量', '原因']],
+    text=df.loc[df['買/賣'] == '買', '買/賣'],
+    customdata=df.loc[df['買/賣'] == '買', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
     row=1, col=1)
 
-    fig.add_trace(go.Scatter(x=trade_df.loc[trade_df['買/賣'] == '賣', '日期'],
-    y=trade_df.loc[trade_df['買/賣'] == '賣', '價格'],
+    fig.add_trace(go.Scatter(x=df.loc[df['買/賣'] == '賣', '日期'],
+    y=df.loc[df['買/賣'] == '賣', '價格'],
     mode='markers',
     marker=dict(symbol='triangle-down-open', color='black', line=dict(color='black', width=2), size=10),
-    text=trade_df.loc[trade_df['買/賣'] == '賣', '買/賣'],
-    customdata=trade_df.loc[trade_df['買/賣'] == '賣', ['數量', '原因']],
+    text=df.loc[df['買/賣'] == '賣', '買/賣'],
+    customdata=df.loc[df['買/賣'] == '賣', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
     row=1, col=1)
 
-    trade_df = df[(df['user_id'] == user_id) & (df['股票名稱'] == stock_name)]
-    trades=trade_df.to_dict(orient='records')
+    df = df[(df['user_id'] == user_id) & (df['股票名稱'] == stock_name)]
+    trades=df.to_dict(orient='records')
 
     card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
     card_df = card_df[(card_df['user_id'] == user_id)]
@@ -441,23 +441,33 @@ def add_trade():
 # 定義一個路由和函數來處理刪除交易的請求
 @app.route('/delete_trade/<int:trade_id>', methods=['GET', 'POST'])
 def delete_trade(trade_id):
-    df = pd.read_csv('trades.csv', encoding='utf-8-sig')
-    df = df[~(df['trade_id'] == trade_id)]
-    df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
+    global trade_df
+    trade_df = trade_df[~(trade_df['trade_id'] == trade_id)]
+    trade_df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(url_for('index'))
 
 # 定義一個路由和函數來處理編輯交易的請求
 @app.route('/edit_trade/<int:trade_id>', methods=['GET', 'POST'])
 def edit_trade(trade_id):
+    global card_df, trade_df
     user_id = current_user.get_id()
     if request.method == 'GET':
-        df = pd.read_csv('trades.csv')
-        trade = df[df['trade_id'] == trade_id]
-        trades = trade.to_dict('records')
-        return render_template('edit_trade.html', trades=trades)
+        trade = trade_df[trade_df['trade_id'] == trade_id]
+        date_str = trade['日期'].iloc[0]
+        date_obj = datetime.strptime(date_str, '%Y/%m/%d')
+        formatted_date_str = date_obj.strftime('%Y-%m-%d')
+
+        trade['日期'].iloc[0] = formatted_date_str
+        trade = trade.to_dict('records')
+        df = card_df[(card_df['user_id'] == user_id)]
+        cards=df.to_dict(orient='records')
+        return render_template('edit_trade.html', cards=cards, trade=trade)
     else:
-        df = pd.read_csv('trades.csv', encoding='utf-8-sig')
         date = request.form.get('date')
+
+        date = date.replace('-', '/')
+
+        date = date.replace('/0', '/')
         stock_symbol = request.form.get('stock_symbol')
         stock_name = request.form.get("stock_name")
         price = request.form.get('price')
@@ -466,7 +476,7 @@ def edit_trade(trade_id):
         reason = request.form.get('reason')
         rule = request.form.get('rule')
 
-        mask = df['trade_id'] == trade_id
+        mask = trade_df['trade_id'] == trade_id
 
         data = {
             '日期': date,
@@ -482,9 +492,9 @@ def edit_trade(trade_id):
             '待決定': "",
         }
 
-        df.loc[mask, data.keys()] = data.values()
+        trade_df.loc[mask, data.keys()] = data.values()
 
-        df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
+        trade_df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
 
         return redirect(url_for('index'))
 
@@ -658,6 +668,13 @@ def add_review(review_id):
     stock_data['MA20'] = stock_data['close'].rolling(window=20).mean()
     stock_data['MA50'] = stock_data['close'].rolling(window=50).mean()
     stock_data['MA60'] = stock_data['close'].rolling(window=60).mean()
+    dt_all = pd.date_range(start=stock_data['date'].iloc[0],end=stock_data['date'].iloc[-1])
+    dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(stock_data['date'])]
+    dt_break = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
+    stock_data['MFI'] = ta.mfi(stock_data['high'], stock_data['low'], stock_data['close'], stock_data['Volume'], length=5)
+    # stock_data['CCI'] = ta.mfi(stock_data['high'], stock_data['low'], stock_data['close'], stock_data['Volume'], length=20)
+    # stock_copy['RSI'] = ta.rsi(stock_copy['Close'], length=20)
+
     data = stock_data.to_json(orient='records')
 
 
@@ -683,7 +700,7 @@ def add_review(review_id):
 
     # 震盪指標
     if 'rsi' in default_list:
-        buy_df['rsi_buy'] = buy_df['rsi'] > 30
+        buy_df['rsi_buy'] = buy_df['rsi'] > 20
 
     if 'stoch' in default_list:
         buy_df['stoch_buy'] = (buy_df['slowd'] > 20) & (buy_df['slowd'].shift(1) > 20)
@@ -725,13 +742,13 @@ def add_review(review_id):
 
     # 震盪指標
     if 'rsi' in default_list:
-        sell_df['rsi_sell'] = sell_df['rsi'] < 70
+        sell_df['rsi_sell'] = sell_df['rsi'] < 50
 
     if 'stoch' in default_list:
         sell_df['stoch_sell'] = (sell_df['slowd'] < 80) & (sell_df['slowd'].shift(1) < 80)
 
     if 'cci' in default_list:
-        sell_df['cci_sell'] = sell_df['cci'] < 100
+        sell_df['cci_sell'] = sell_df['cci'] < 0
 
     # 通道指標
 
@@ -746,7 +763,7 @@ def add_review(review_id):
         sell_df['cmf_sell'] = sell_df['cmf'] < 0
 
     if 'mfi' in default_list:
-        sell_df['mfi_sell'] = sell_df['mfi'] < 80
+        sell_df['mfi_sell'] = sell_df['mfi'] < 50
 
     # ======================================== #
 
@@ -814,12 +831,12 @@ def add_review(review_id):
     print(f'--------------載入頁面-------------')
 
     if review_id == 9999:
-        return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data, dt_break=dt_break)
 
     else:
         review = review_df[review_df['review_id'] == review_id]
         review = review.to_dict('records')
-        return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data)
+        return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data, dt_break=dt_break)
 
 @app.route('/view_chart', methods=['GET'])
 def view_chart():

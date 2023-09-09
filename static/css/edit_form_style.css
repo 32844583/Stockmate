@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap');
+
+.form_div * {
+  box-sizing: border-box;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.form_div {
+  position: fixed;
+  top: 0%;
+  left: 35%;
+  z-index: -1;
+  align-items: center;
+  justify-content: center;
+  width: 50vw;
+  height: 50vh;
+}
+
+.form_div form {
+  padding: 15px;
+  background: #fff;
+  max-width: 500px;
+  width: 100%;
+  border-radius: 7px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+}
+
+.form_div form h2 {
+  font-size: 20px;
+  text-align: center;
+  margin: 0px 0 30px;
+}
+
+.form_div form .form-group {
+  margin-bottom: 7px;
+  position: relative;
+}
+
+.form_div form label {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 7px;
+}
+
+.form_div form input,
+.form_div form select {
+  height: 35px;
+  padding: 7px;
+  width: 100%;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  border-radius: 3px;
+  border: 1px solid #bfbfbf;
+}
+
+.form_div form input:focus,
+.form_div form select:focus {
+  border-color: #9a9a9a;
+}
+
+.form_div form input.error,
+.form_div form select.error {
+  border-color: #f91919;
+  background: #f9f0f1;
+}
+
+.form_div form small {
+  font-size: 14px;
+  margin-top: 5px;
+  display: block;
+  color: #f91919;
+}
+
+.form_div form .password i {
+  position: absolute;
+  right: 0px;
+  height: 45px;
+  top: 28px;
+  font-size: 13px;
+  line-height: 45px;
+  width: 45px;
+  cursor: pointer;
+  color: #939393;
+  text-align: center;
+}
+
+.form_div .submit-btn {
+  margin-top: 30px;
+}
+
+.form_div .submit-btn input {
+  color: white;
+  border: none;
+  height: auto;
+  font-size: 16px;
+  padding: 13px 0;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  text-align: center;
+  background: #1BB295;
+  transition: 0.2s ease;
+}
+
+.form_div .submit-btn input:hover {
+  background: #179b81;
+}
+
+.form_div input[type=number]::-webkit-inner-spin-button {  
+    margin-right: -10px;
+    width: 20px;
+    height: 40px;
+}

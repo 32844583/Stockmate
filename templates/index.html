@@ -15,7 +15,7 @@
 <body>
     {% include 'navbar.html' %}
 
-    <form style='display: none;'action="/" method="post">
+    <form id="myForm" style='display: none;' action="/" method="POST">
     <label for="symbol">請輸入股票代碼：</label>
     <input type="text" id="symbol" name="symbol" value="{{ symbol }}">
     <input type="submit" value="查詢">
@@ -96,6 +96,8 @@
             formDiv.style.zIndex = "-1";
           }
         });
+
+
     </script>
 </body>
 </html>
