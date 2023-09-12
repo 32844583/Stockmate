@@ -1,22 +1,15 @@
-from datetime import datetime, timedelta
-from datetime import date
+from datetime import datetime
 import feedparser
 import pandas as pd
 import twstock
-import re
-import time
 import requests
 from bs4 import BeautifulSoup
-from pprint import pprint
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
-from decimal import Decimal
 import math
 import os
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from sqlalchemy import Date
 from sqlalchemy import and_
-import json
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
@@ -29,13 +22,6 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import MetaData
 import pandas_ta as ta
 pd.options.mode.chained_assignment = None  # default='warn'
-naming_convention = {
-"ix": "ix_%(column_0_label)s",
-"uq": "uq_%(table_name)s_%(column_0_name)s",
-"ck": "ck_%(table_name)s_%(constraint_name)s",
-"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-"pk": "pk_%(table_name)s"
-}
 
 app = Flask(__name__, static_folder='static')
 
@@ -45,8 +31,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 
 app.config['SECRET_KEY'] = 'thisisasecretkey'
 
-db = SQLAlchemy(app, metadata=MetaData(naming_convention=naming_convention))
-migrate = Migrate(app ,db)
+db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
@@ -107,7 +92,9 @@ class LoginForm(FlaskForm):
                              InputRequired(), Length(min=8, max=20)], render_kw={"placeholder": "Password"})
 
     submit = SubmitField('Login')
-
+    
+with app.app_context():
+    db.create_all()
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -141,7 +128,6 @@ def register():
 
     return render_template('register.html', form=form)
 
-
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
@@ -150,6 +136,8 @@ def index():
     symbol = "2330.TW"
     if request.method=='POST':
         symbol = request.form['symbol']
+    elif request.args.get('stock_symbol', ''):
+        symbol = request.args.get('stock_symbol', '')
 
     # -----------------取得資料----------------#
 
@@ -157,7 +145,6 @@ def index():
     df = trade_df.loc[(trade_df['股票代號'] == symbol) & (trade_df['user_id'] == user_id)]
 
     if df.empty:
-        print(df)
         stock = twstock.Stock(symbol[:4]) # 台積電的股票代碼為 2330
         data = stock.fetch_from(2023, 7) # 從 start_date 開始查詢
     else:
@@ -166,8 +153,6 @@ def index():
         stock_symbol = symbol[:4]
         start_date = temp['日期'].min() - relativedelta(months=2)
         end_date = temp['日期'].max() + relativedelta(days=2)
-        print(start_date)
-        print(end_date)
         stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
         data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
 
@@ -175,7 +160,6 @@ def index():
     data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
     
     data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
-    print(data)
 
     # -----------------取得資料----------------#
     dt_all = pd.date_range(start=data['Date'].iloc[0],end=data['Date'].iloc[-1])
@@ -344,9 +328,9 @@ def cards():
             cards.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
 
         card_df = pd.read_csv('cards.csv', encoding='utf-8-sig')
-        print(f'--------------新增卡組-------------')
-        print(f'目前卡組 \n {cards}')
-        print(f'--------------新增卡組-------------')
+        # print(f'--------------新增卡組-------------')
+        # print(f'目前卡組 \n {cards}')
+        # print(f'--------------新增卡組-------------')
         # card_list = request.form.getlist('card_name') # 獲取勾選框的 value 列表
         # card_string = '-'.join(card_list) # 將列表中的元素用 '-' 串成一個字串
         # card_id = pd.read_csv('cards.csv', encoding='utf-8-sig').shape[0]
@@ -378,10 +362,10 @@ def delete_component():
             if item not in custom_list:
                 custom_list.append(item)
 
-    print(f'--------------刪除卡牌-------------')
-    print(f'刪除卡牌 {component}')
-    print(trade_df['遵守'].str.contains(component, regex=False).any())
-    print(f'--------------刪除卡牌-------------')
+    # print(f'--------------刪除卡牌-------------')
+    # print(f'刪除卡牌 {component}')
+    # print(trade_df['遵守'].str.contains(component, regex=False).any())
+    # print(f'--------------刪除卡牌-------------')
 
     if trade_df['遵守'].str.contains(component, regex=False).any() | trade_df['違反'].str.contains(component, regex=False).any():
         flash('不可刪除套用在交易上的卡牌')
@@ -406,11 +390,11 @@ def delete_card(card_id):
         flash('不可刪除正在使用的策略')
         return redirect(request.referrer)
 
-    print(f'--------------刪除卡組-------------')
-    print(f'刪除卡組 \n {card_id}')
-    print(f'刪除卡組 \n {check}')
-    print(f'刪除卡組 \n {rule}')
-    print(f'--------------刪除卡組-------------')
+    # print(f'--------------刪除卡組-------------')
+    # print(f'刪除卡組 \n {card_id}')
+    # print(f'刪除卡組 \n {check}')
+    # print(f'刪除卡組 \n {rule}')
+    # print(f'--------------刪除卡組-------------')
     card_df = card_df[(~(card_df['card_id'] == card_id) & (card_df['user_id'] == user_id))]
     card_df.to_csv('cards.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(url_for('cards'))
@@ -436,7 +420,7 @@ def add_trade():
         columns=["trade_id", "user_id", "日期", "股票代號", "股票名稱", "價格", "數量", "買/賣", "原因", "使用規則", "遵守", "違反", "待決定"])
     df.to_csv("trades.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
     trade_df = pd.read_csv('trades.csv', encoding='utf-8-sig')
-    return redirect(request.referrer)
+    return redirect(url_for('index', stock_symbol=stock_symbol))
 
 # 定義一個路由和函數來處理刪除交易的請求
 @app.route('/delete_trade/<int:trade_id>', methods=['GET', 'POST'])
@@ -444,7 +428,7 @@ def delete_trade(trade_id):
     global trade_df
     trade_df = trade_df[~(trade_df['trade_id'] == trade_id)]
     trade_df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
-    return redirect(url_for('index'))
+    return redirect(url_for('index', stock_symbol=stock_symbol))
 
 # 定義一個路由和函數來處理編輯交易的請求
 @app.route('/edit_trade/<int:trade_id>', methods=['GET', 'POST'])
@@ -496,7 +480,7 @@ def edit_trade(trade_id):
 
         trade_df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
 
-        return redirect(url_for('index'))
+        return redirect(url_for('index', stock_symbol=stock_symbol))
 
 
 
@@ -504,12 +488,15 @@ def edit_trade(trade_id):
 @login_required
 def review():
     global trade_df, review_df
-    reviews = review_df.to_dict(orient='records')
+    user_id = int(current_user.get_id())
+    reviews = review_df.loc[review_df['user_id'] == user_id]
+    reviews = reviews.to_dict(orient='records')
     items = trade_df.drop_duplicates(subset=['使用規則', '股票名稱'], keep='first')
+    items.dropna(subset=['使用規則'], inplace=True)
     items = items.to_dict(orient='records')
-    print(f'--------------載入所有績效-------------')
-    print(f'所有item{reviews}')
-    print(f'--------------所有績效-------------')
+    # print(f'--------------載入所有績效-------------')
+    # print(f'所有item{items}')
+    # print(f'--------------所有績效-------------')
     return render_template('review.html', items=items, reviews=reviews)
 
 @app.route('/options')
@@ -543,6 +530,8 @@ def check_point():
     print(f'資料: {point_data}')
     print(f'--------------按下點位-------------')
     return jsonify(point_data)
+
+
 @app.route('/add_review', defaults={'review_id': 9999}, methods=['GET', 'POST'])
 @app.route('/add_review/<int:review_id>', methods=['GET', 'POST'])
 def add_review(review_id):
@@ -558,22 +547,29 @@ def add_review(review_id):
             return redirect(request.referrer)
 
     else:
-        review = review_df[review_df['review_id'] == review_id].iloc[0]
-        rule = str(review['使用規則'])
-        option = str(review['股票名稱'])
+
+        review = review_df[review_df['review_id'] == review_id]
+        # print(f'--------------編輯 review -------------')
+        # print(f'review_id: {review_id}')
+        # print(f'所有review:', review_df)
+        # print(f'review:', review)
+        # print(f'--------------編輯 review-------------')
+        rule = str(review['使用規則'].iloc[0])
+        option = str(review['股票名稱'].iloc[0])
 
     cards = card_df.loc[card_df['卡組名稱'] == rule]
-    data = cards['使用卡牌'].values[0].split('-')
+    data = str(cards['使用卡牌'].iloc[0]).split('-')
     term = data[0]
+
     # print("---------------編輯頁面---------------")
     # print("trade_data \n ", trade_df)
     # print("---------------編輯頁面---------------")
 
     df = trade_df.loc[(trade_df['股票名稱'] == option) & (trade_df['使用規則'] == rule) & (trade_df['user_id'] == user_id)]
     df['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
-
+    
     # twstock 只取數字
-    stock_symbol = df['股票代號'].iloc[0][:4]
+    stock_symbol = str(df['股票代號'].iloc[0])[:4]
 
     start_date = df['日期'].min() - relativedelta(months=3)
     end_date = df['日期'].max() + relativedelta(days=2)
@@ -822,18 +818,17 @@ def add_review(review_id):
     global chart_data, trade_point
     chart_data = data
     trade_point = trade_data
-    print(f'--------------載入頁面-------------')
-    print(f'買點執行率{buy_ratio}')
-    print(f'買點執行率{sell_ratio}')
-    # print(f'所有交易點(顯示在圖表上的){trade_data}')
-    print(f'買點資料: ', buy_df['Close'])
-
-    print(f'--------------載入頁面-------------')
+    # print(f'--------------載入頁面-------------')
+    # print(f'買點執行率{buy_ratio}')
+    # print(f'買點執行率{sell_ratio}')
+    # print(f'買點資料: ', buy_df['Close'])
+    # print(f'--------------載入頁面-------------')
 
     if review_id == 9999:
         return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data, dt_break=dt_break)
 
     else:
+
         review = review_df[review_df['review_id'] == review_id]
         review = review.to_dict('records')
         return render_template('review_form.html', fig2=fig2.to_html(), fig=fig.to_html(), review=review, custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data, dt_break=dt_break)
@@ -1080,12 +1075,12 @@ def one_point_indicator_detail(user_id, stock_name, date, price, action, rule):
 
     point_data = remove_nan(point_data)
 
-    print(f'--------------按下點位-------------')
-    print(f'目前策略的所有卡牌: {card_list}')
-    print(f'目前策略的客製卡牌: {custom_list}')
+    # print(f'--------------按下點位-------------')
+    # print(f'目前策略的所有卡牌: {card_list}')
+    # print(f'目前策略的客製卡牌: {custom_list}')
     # print(f'輸出: ',buys['sma'], buys['Close'].tolist())
     # print(f'輸出: ',sells['sma'], sells['Close'].tolist())
-    print(f'--------------按下點位-------------')
+    # print(f'--------------按下點位-------------')
 
     return point_data
 
@@ -1125,9 +1120,9 @@ def update_review():
     df.to_csv("reviews.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
     review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
 
-    print(f'--------------送出表單-------------')
-    print(f'目前資料: {df}')
-    print(f'--------------送出表單-------------')
+    # print(f'--------------送出表單-------------')
+    # print(f'目前資料: {df}')
+    # print(f'--------------送出表單-------------')
     return redirect(url_for('index'))
 
 @app.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
@@ -1135,7 +1130,7 @@ def edit_review(review_id):
     global review_df
     status = request.form.get("status", ' ')
     conclusion = request.form.get('myTextarea')
-    user_id = current_user.get_id()
+    user_id = int(current_user.get_id())
 
     mask = review_df['review_id'] == review_id
 
@@ -1193,17 +1188,17 @@ def update_custom():
     trade_df.loc[mask, data.keys()] = data.values()
     trade_df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
 
-    print(f'--------------更新指標-------------')
-    print(f'日期為 {date}')
-    print(f'trade_df: \n {trade_df}')
-    print(f'遵守項目有: {follow}')
-    print(f'違反項目有: {violate}')
-    print('修改資料: ', trade_df.loc[mask])
-    print(f'--------------更新指標-------------')
+    # print(f'--------------更新指標-------------')
+    # print(f'日期為 {date}')
+    # print(f'trade_df: \n {trade_df}')
+    # print(f'遵守項目有: {follow}')
+    # print(f'違反項目有: {violate}')
+    # print('修改資料: ', trade_df.loc[mask])
+    # print(f'--------------更新指標-------------')
 
     return redirect(request.referrer)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
 
 

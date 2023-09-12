@@ -147,10 +147,10 @@ ruleSelect.addEventListener('change', () => {
       optionsSelect.innerHTML = '';
       
       for (const option of options) {
-        const optionElement = document.createElement('option');
-        optionElement.value = option;
-        optionElement.textContent = option;
-        optionsSelect.appendChild(optionElement);
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          optionsSelect.appendChild(optionElement);
       }
     });
 });
