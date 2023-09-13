@@ -95,9 +95,9 @@
     <tr>
         <td>報酬率</td>
         {% if review %}
-            <td id='data3'>{{ review[0]['報酬率'] }}</td>
+            <td id='data3'>{{ review[0]['報酬率'] }}%</td>
         {% else %}
-            <td id='data3'>{{ basic_info['報酬率'] }}</td>
+            <td id='data3'>{{ basic_info['報酬率'] }}%</td>
         {% endif %}
     </tr>
     <tr>
@@ -301,7 +301,9 @@
             low: data.map(d => d.low),
             close: data.map(d => d.close),
             type: 'candlestick',
-            name: '股票價格'
+            name: '股票價格',
+            hovertemplate: '<b>日期:%{x}</b><br><b>開:%{open:$.2f}</b><br><b>收:%{close:$.2f}</b><br><b>高:%{high:$.2f}</b><br><b>低:%{low:$.2f}</b><extra></extra>',
+
         };
 
         var trace2 = {
@@ -322,9 +324,11 @@
           x: data.map(d => d.date),
           y: data.map(d => d.MFI), // MFI 數據
           type: 'scatter',
-          name: 'RSI',
+          name: 'MFI',
           xaxis: 'x',
-          yaxis: 'y2'
+          yaxis: 'y2',
+          hovertemplate: '<b>日期： %{x}<br>MFI： %{y:.2f}</b><extra></extra>'
+
         };
 
         // 添加上界線
@@ -374,14 +378,14 @@
             name: '買點',
             marker: {
                 symbol: 'triangle-up-open', // 設定 marker 的形狀為空心三角形
-                size: 10,
+                size: 13,
                 color: 'black',
                 line: { // 設定 marker 的框線屬性
                   color: 'black', // 設定框線顏色
                   width: 2 // 設定框線粗細
                 }
             },
-            hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><br>%{text}<extra></extra>',
+            hovertemplate: '<b>日期:%{x}</b><br><b>買價:%{y:$.2f}</b><br><b>股數:%{text}</b><extra></extra>',
 
         };
 
@@ -394,14 +398,14 @@
             name: '賣點',
             marker: {
                 symbol: 'triangle-down-open', // 設定 marker 的形狀為空心三角形
-                size: 10,
+                size: 13,
                 color: 'black',
                 line: { // 設定 marker 的框線屬性
                   color: 'black', // 設定框線顏色
                   width: 2 // 設定框線粗細
                 }
             },
-            hovertemplate: '日期:<b>%{x}</b><br><b>%{y:$.2f}</b><br>%{text}<extra></extra>',
+            hovertemplate: '<b>日期:%{x}</b><br><b>賣價:%{y:$.2f}</b><br><b>股數:%{text}</b><extra></extra>',
         };
 
         var layout = {

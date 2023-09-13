@@ -856,7 +856,7 @@ def get_stock_basic_info(stock_name, rule):
             total_profit += row['價格'] * row['數量']
     return_rate = total_profit / (trades[trades['買/賣'] == '買']['價格'] * trades[trades['買/賣'] == '買']['數量']).sum()
     data['獲利'] = total_profit
-    data['報酬率'] = return_rate
+    data['報酬率'] = round(return_rate*100, 2)
     data['交易筆數'] = trades.shape[0]
     data['交易期間'] =  f"{trades['日期'].min()} - {trades['日期'].max()}"
     data['使用策略'] = trades['使用規則'].iloc[0]
