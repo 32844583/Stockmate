@@ -95,9 +95,17 @@
     <tr>
         <td>報酬率</td>
         {% if review %}
+            {% if '%' in review[0]['報酬率']|string %}
+            <td id='data3'>{{ review[0]['報酬率'] }}</td>
+            {% else %}
             <td id='data3'>{{ review[0]['報酬率'] }}%</td>
+            {% endif %}
         {% else %}
+            {% if '%' in basic_info['報酬率']|string %}
+            <td id='data3'>{{ basic_info['報酬率'] }}</td>
+            {% else %}
             <td id='data3'>{{ basic_info['報酬率'] }}%</td>
+            {% endif %}            
         {% endif %}
     </tr>
     <tr>
@@ -320,55 +328,6 @@
             name: 'MA20'
         };
 
-        var trace8 = {
-          x: data.map(d => d.date),
-          y: data.map(d => d.MFI), // MFI 數據
-          type: 'scatter',
-          name: 'MFI',
-          xaxis: 'x',
-          yaxis: 'y2',
-          hovertemplate: '<b>日期： %{x}<br>MFI： %{y:.2f}</b><extra></extra>'
-
-        };
-
-        // 添加上界線
-        var trace9 = {
-          x: [data[0].date, data[data.length - 1].date],
-          y: [100, 100],
-          type: 'scatter',
-          mode: 'lines',
-          line: {color:'red', dash:'dash'},
-          name: '上界線',
-          xaxis: 'x',
-          yaxis: 'y2'
-        };
-
-        // 添加中界線
-        var trace10 = {
-          x: [data[0].date, data[data.length - 1].date],
-          y: [50, 50],
-          type: 'scatter',
-          mode: 'lines',
-          line: {color:'blue', dash:'dash'},
-          name: '中界線',
-          xaxis: 'x',
-          yaxis: 'y2'
-        };
-
-        // 添加下界線
-        var trace11 = {
-          x: [data[0].date, data[data.length - 1].date],
-          y: [0, 0],
-          type: 'scatter',
-          mode: 'lines',
-          line: {color:'green', dash:'dash'},
-          name: '下界線',
-          xaxis: 'x',
-          yaxis: 'y2'
-        };
-
-
-        // 繪製買賣點位
         var trace4 = {
             x: trade_data.filter(d => d.type === 'buy').map(d => d.date),
             y: trade_data.filter(d => d.type === 'buy').map(d => d.price),
@@ -407,71 +366,6 @@
             },
             hovertemplate: '<b>日期:%{x}</b><br><b>賣價:%{y:$.2f}</b><br><b>股數:%{text}</b><extra></extra>',
         };
-
-        var layout = {
-            hovermode:'closest',
-
-            title: '股票價格和移動平均線',
-            xaxis: {
-                title: '日期',
-                fixedrange: true,
-                rangeslider: {visible: false},
-            },
-            yaxis: {
-                title: '價格' 
-            },
-            // 調整圖表的寬度和高度
-            width: 500,
-            height: 250,
-            margin: {
-                l: 50, // 左邊距
-                r: 50, // 右邊距
-                b: 0, // 下邊距
-                t: 50, // 上邊距
-                pad: 4 // 邊框與繪圖區域之間的額外空間
-            },
-                sliders: [{
-                visible: false
-            }]
-        };
-        var layout2 = {
-            hovermode:'closest',
-
-            title: '股票價格和移動平均線',
-            xaxis: {
-                title: '日期',
-                fixedrange: true,
-                rangeslider: {visible: false},
-                tickwidth: 100, // 設置蠟燭之間的間距
-                domain:[0,1],
-                rangebreaks: dt_break // 使用傳遞過來的變量設置 rangebreaks 屬性
-            },
-            yaxis: {
-                title: '價格' ,
-                domain:[0.3,1]
-            },
-            yaxis2:{
-                title:'MFI',
-                domain:[0,0.2],
-                anchor:'x',
-                tickvals: [0, 50, 100], // 指定 y2 軸上的刻度值
-                ticktext: ['0', '50', '100'] // 指定 y2 軸上的刻度標籤
-            },
-            
-            // 調整圖表的寬度和高度
-            width: 1400,
-            height: 500,
-            margin: {
-                l: 0, // 左邊距
-                r: 0, // 右邊距
-                b: 0, // 下邊距
-                t: 50, // 上邊距
-                pad: 4 // 邊框與繪圖區域之間的額外空間
-            },
-                sliders: [{
-                visible:false
-            }]
-        };
         var trace6 = {
             x: data.map(d => d.date),
             y: data.map(d => d.MA60),
@@ -485,8 +379,157 @@
             type: 'scatter',
             name: 'MA50'
         };
+
+        var trace8 = {
+          x: data.map(d => d.date),
+          y: data.map(d => d.MFI), // MFI 數據
+          type: 'scatter',
+          name: 'MFI',
+          xaxis: 'x',
+          yaxis: 'y2',
+          hovertemplate: '<b>日期： %{x}<br>MFI： %{y:.2f}</b><extra></extra>'
+
+        };
+
+
+
+        var up_line = {
+          x: [data[0].date, data[data.length - 1].date],
+          type: 'scatter',
+          mode: 'lines',
+          line: {color:'red', dash:'dash'},
+          name: '上界線',
+          xaxis: 'x',
+          yaxis: 'y2'
+        };
+
+        var middle_line = {
+          x: [data[0].date, data[data.length - 1].date],
+          type: 'scatter',
+          mode: 'lines',
+          line: {color:'blue', dash:'dash'},
+          name: '中界線',
+          xaxis: 'x',
+          yaxis: 'y2'
+        };
+
+        var bottom_line = {
+          x: [data[0].date, data[data.length - 1].date],
+          type: 'scatter',
+          mode: 'lines',
+          line: {color:'green', dash:'dash'},
+          name: '下界線',
+          xaxis: 'x',
+          yaxis: 'y2'
+        };
+
+        var trace_vol5 = {
+          x: data.map(d => d.date),
+          y: data.map(d => d.vol5), 
+          type: 'scatter',
+          line: {color:'red'},
+          name: 'VOL5',
+          xaxis: 'x',
+          yaxis: 'y2',
+          hovertemplate: '<b>日期： %{x}<br>Vol5： %{y:.0f}</b><extra></extra>'
+        };
+
+        var trace_vol20 = {
+          x: data.map(d => d.date),
+          y: data.map(d => d.vol20),
+          type: 'scatter',
+          line: {color:'green'},
+          name: 'VOL20',
+          xaxis: 'x',
+          yaxis: 'y2',
+          hovertemplate: '<b>日期： %{x}<br>Vol20： %{y:.0f}</b><extra></extra>'
+        };
+
+        var trace_cci = {
+          x: data.map(d => d.date),
+          y: data.map(d => d.CCI),
+          type: 'scatter',
+          name: 'CCI',
+          xaxis: 'x',
+          yaxis: 'y2',
+          hovertemplate: '<b>日期： %{x}<br>CCI： %{y:.2f}</b><extra></extra>'
+        };
+
+        var trace_rsi = {
+          x: data.map(d => d.date),
+          y: data.map(d => d.RSI),
+          type: 'scatter',
+          name: 'RSI',
+          xaxis: 'x',
+          yaxis: 'y2',
+          hovertemplate: '<b>日期： %{x}<br>RSI： %{y:.2f}</b><extra></extra>'
+        };
+
+        var layout = {
+            hovermode:'closest',
+            title: '股票價格和移動平均線',
+            xaxis: {
+                title: '日期',
+                fixedrange: true,
+                rangeslider: {visible: false},
+            },
+            yaxis: {
+                title: '價格' 
+            },
+            width: 500,
+            height: 250,
+            margin: {
+                l: 50, 
+                r: 50, 
+                b: 0, 
+                t: 50, 
+                pad: 4 
+            },
+            sliders: [{
+                visible: false
+            }]
+        };
+
+        var zoom_in_layout = {
+            hovermode:'closest',
+            title: '股票價格和移動平均線',
+            xaxis: {
+                title: '日期',
+                fixedrange: true,
+                rangeslider: {visible: false},
+                domain:[0,1],
+                rangebreaks: dt_break
+            },
+            yaxis: {
+                title: '價格' ,
+                domain:[0.3,1],
+            },
+            yaxis2:{
+                title:'index_value',
+                domain:[0,0.2],
+                // tickmode: 'array',
+                // tickvals: [0, 50, 100],
+                // ticktext: ['0', '50', '100'],
+                anchor:'x',
+            },
+            width: 1400,
+            height: 600,
+            margin: {
+                l: 100, 
+                r: 0, 
+                b: 50, 
+                t: 50, 
+                pad: 4 
+            },
+            sliders: [{
+                visible:false
+            }]
+        };
+
+
         Plotly.newPlot('plot', [trace1, trace2, trace3, trace4, trace5, trace6, trace7], layout);
-        Plotly.newPlot('chart', [trace1, trace2, trace3, trace4, trace5, trace6, trace7, trace8 , trace9, trace10, trace11], layout2);
+        Plotly.newPlot('chart', [trace1, trace2, trace3, trace4, trace5, trace6, trace7, trace_cci , up_line, middle_line, bottom_line], zoom_in_layout);
+
         var plotDiv = document.getElementById('plot');
         plotDiv.on('plotly_click', function(data){
             var point = data.points[0];
@@ -517,17 +560,18 @@
                     }
                     data['系統遵守'].forEach(item => {
                         if(item != 'nan'){
-                        const itemDiv = document.createElement('div');
-                        itemDiv.classList.add('item');
+                                const itemDiv = document.createElement('div');
+                                itemDiv.classList.add('item');
 
-                        const checkmarkSpan = document.createElement('span');
-                        checkmarkSpan.classList.add('checkmark');
-                        checkmarkSpan.textContent = '✔';
+                                const checkmarkSpan = document.createElement('span');
+                                checkmarkSpan.classList.add('checkmark');
+                                checkmarkSpan.textContent = '✔';
 
-                        itemDiv.appendChild(checkmarkSpan);
-                        itemDiv.appendChild(document.createTextNode(item));
+                                itemDiv.appendChild(checkmarkSpan);
+                                itemDiv.appendChild(document.createTextNode(item));
 
-                        follow.appendChild(itemDiv);
+                                follow.appendChild(itemDiv);
+
                         }
 
 
@@ -539,17 +583,17 @@
                     }
                     data['系統違反'].forEach(item => {
                         if(item != 'nan'){
-                        const itemDiv = document.createElement('div');
-                        itemDiv.classList.add('item');
+                                const itemDiv = document.createElement('div');
+                                itemDiv.classList.add('item');
 
-                        const checkmarkSpan = document.createElement('span');
-                        checkmarkSpan.classList.add('cross');
-                        checkmarkSpan.textContent = '✘';
+                                const checkmarkSpan = document.createElement('span');
+                                checkmarkSpan.classList.add('cross');
+                                checkmarkSpan.textContent = '✘';
 
-                        itemDiv.appendChild(checkmarkSpan);
-                        itemDiv.appendChild(document.createTextNode(item));
+                                itemDiv.appendChild(checkmarkSpan);
+                                itemDiv.appendChild(document.createTextNode(item));
 
-                        violate.appendChild(itemDiv);
+                                violate.appendChild(itemDiv);
                         }
 
 
@@ -561,20 +605,40 @@
                     }
                     data['待決定'].forEach(function(itemName) {
                         if(itemName != 'nan' &&  itemName != ''){
-                        var item = document.createElement('div');
-                        item.className = 'item';
-                        item.innerHTML = `
-                            <label>
-                                <input type="checkbox" name="${itemName}" value="遵守" class="checkmark-radio">
-                                <span>✔</span>
-                            </label>
-                            <label>
-                                <input type="checkbox" name="${itemName}" value="違反" class="cross-radio">
-                                <span>✘</span>
-                            </label>
-                            ${itemName}
-                        `;
-                        content.appendChild(item);
+                            if (point.data.name=="買點" && itemName.includes("買")){
+                                var item = document.createElement('div');
+                                item.className = 'item';
+                                item.innerHTML = `
+                                    <label>
+                                        <input type="checkbox" name="${itemName}" value="遵守" class="checkmark-radio">
+                                        <span>✔</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" name="${itemName}" value="違反" class="cross-radio">
+                                        <span>✘</span>
+                                    </label>
+                                    ${itemName}
+                                `;
+                                content.appendChild(item);
+                            }
+                            else if(point.data.name=="賣點" && itemName.includes("賣")){
+                                var item = document.createElement('div');
+                                item.className = 'item';
+                                item.innerHTML = `
+                                    <label>
+                                        <input type="checkbox" name="${itemName}" value="遵守" class="checkmark-radio">
+                                        <span>✔</span>
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" name="${itemName}" value="違反" class="cross-radio">
+                                        <span>✘</span>
+                                    </label>
+                                    ${itemName}
+                                `;
+                                content.appendChild(item);
+                            }
+
+
                         }
                     });
                     data['遵守'].forEach(function(itemName) {

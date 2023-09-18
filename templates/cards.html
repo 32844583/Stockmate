@@ -5,7 +5,6 @@
 <head>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/card_table_style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/card_form_style.css') }}">
 <style>
     .form_div h2, h4{
       margin-top: 10px;
@@ -36,11 +35,11 @@
     }
 
     .checkboxes .title {
-        background-color: #F0E68C;
+        background-color:       #84C1FF;
     }
 
     .checkboxes input[type="checkbox"]:checked + span {
-        background-color: #87CEEB;
+        background-color: #0072E3;
         color: white;
     }
 
@@ -56,7 +55,7 @@
 
 
     .checkboxes input[type="radio"]:checked + span {
-        background-color: #ADD8E6;
+        background-color: #0072E3;
         color: white;
     }
 
@@ -72,19 +71,26 @@
 
 
     .block {
-      height: 6vh;
+      height: auto;
       width: 100%;
       margin: 5px;
       padding-left: 1vw;
+      
     }
 
     .block input[type="text"] {
         width: 10vw;
+        margin-top:3.5vh;
     }
     .big-btn{
         width: 10vw;
+        margin-top: 3vh;
     }
 
+    .block select {
+        width: 10vw;
+        margin-top: 3vh;
+    }
 
     .cardNamelabel{
         margin-left: 0vw;
@@ -93,7 +99,7 @@
 </head>
 <body>
 {% include 'navbar.html' %}
-<h2 style="margin-left: 45vw; margin-bottom: 10px; margin-top: 10px;">所有卡組</h2>
+<h2 style="margin-left: 45vw; margin-bottom: 10px; margin-top: 10px;">自訂卡組</h2>
 {% set amount = cards|length %}
 <div class='rules'>
     {% for i in range(cards|length) %}
@@ -168,17 +174,17 @@
 
     <div class="right" >
   <div class="block">
-    <label class="cardNamelabel" style="margin-left: 3vw;"><h3>名稱</h3></label>
+    <label class="cardNamelabel" style="margin-left: 3vw;"><h3>項目</h3></label>
 
     </div>
 
   <div class="block">
     {% if cards[i] %}
         <input style="display: none" type="text" value='{{ cards[i]["card_id"] }}' name="card_id" checked/>
-        <input type="text" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked/>
+        <input type="text" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked />
     {% else %}
         <input style="display: none" type="text" value='' name="card_id" checked/>
-        <input type="text" id="rule_name" name="rule_name" placeholder="輸入策略名稱" / required><br>
+        <input type="text" id="rule_name" name="rule_name" placeholder="輸入策略名稱" required /><br>
     {% endif %}
     
     </div>
@@ -198,25 +204,25 @@
 </div>
 
 <div class="block">
-<input type="submit" class="big-btn" value="刪除項目">
+<input type="submit" class="btn btn-primary big-btn" value="刪除項目">
 </div>
       </form>
   <form id="myForm">
   <div class="block">
-    <input type="text" id="myText{{ i }}" placeholder="輸入添加項目">
+    <input type="text"  id="myText{{ i }}" placeholder="輸入添加項目" />
   </div>
   <div class="block">
-    <input type="button"  class="big-btn" onclick="addOption({{ i }})"  value="添加項目" />
+    <input type="button"  class="btn btn-primary big-btn" onclick="addOption({{ i }})"  value="添加項目" />
   </div>
   </form>
 
   <div class="block">
-    <button type="submit" class="big-btn"  onclick="submit_form({{ i }})">更新策略</button>
+    <button type="submit" class="btn btn-primary big-btn"  onclick="submit_form({{ i }})">更新策略</button>
   </div>
   <div class="block">
     {% if cards[i] %}
       <form  action="{{ url_for('delete_card', card_id=cards[i]['card_id']) }}" method='get'>
-        <input type="submit" class="big-btn" value="刪除策略">
+        <input type="submit" class="btn btn-primary big-btn" value="刪除策略">
       </form>
     {% endif %}
   </div>
@@ -232,17 +238,19 @@
 
 {% endfor %}
 
+            <div class="error">
         {% with messages = get_flashed_messages() %}
           {% if messages %}
-            <div class="error">
               {% for message in messages %}
               {% if message == '不可刪除正在使用的策略' or message == '不可刪除套用在交易上的卡牌' %}
                 {{ message }}
               {% endif %}
               {% endfor %}
-            </div>
           {% endif %}
         {% endwith %}
+            </div>
+
+
     <script>
 
     // 獲取所有的 radiobox 和 form
@@ -291,7 +299,7 @@ function submit_delete_form(index) {
     form.submit();
 }
   var errorDiv = document.querySelector('.error');
-console.log(errorDiv)
+console.log("errorDiv", errorDiv)
 setTimeout(function() {
   var errorDiv = document.querySelector('.error');
   errorDiv.classList.add('fade-out');

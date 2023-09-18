@@ -1,7 +1,5 @@
 ﻿card_id,user_id,卡組名稱,使用卡牌
-0,2,usecase6,long-sma-stoch-bbl- -custom-
-1,2,usecase4,medium- -rsi-cci- - -custom-成交量(5)>成交量(20)(買)-成交量(5)<成交量(20)(賣)-日均突破月均(買)-日均跌破月均(賣)
-2,2,usecase2,long-sma- - - -custom-MA10均線上揚(買)
-3,2,usecase1, - - -kc-mfi-custom-K(9)<20(買)-K(9)>80(賣)
-4,2,usecase7,short- - - -mfi-custom-三均線向上(買)-頭頭高底底高(買)-頭頭低底底低(賣)-三線向下(賣)
-5,2,usecase3,short- - - -mfi-custom-三均線向上(買)-頭頭高底底高(買)-頭頭低底底低(賣)-三線向下(賣)
+1,2,長期量能,medium- -rsi- - -custom-成交量(5)>成交量(20)(買)-成交量(5)<成交量(20)(賣)-5日均突破20日均(買)-5日均跌破20日均(賣)-刪除的指標
+2,2,長期趨勢投資,long-sma- - - -custom-MA10均線上揚(買)
+3,2,KD回測法, - - -kc-mfi-custom-K(9)<20(買)-K(9)>80(賣)
+4,2,短期趨勢拉回,short- - - -mfi-custom-三均線向上(買)-頭頭高底底高(買)-頭頭低底底低(賣)-三線向下(賣)

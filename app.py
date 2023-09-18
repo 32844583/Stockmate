@@ -237,7 +237,7 @@ def index():
     fig.add_trace(go.Scatter(x=df.loc[df['買/賣'] == '買', '日期'],
     y=df.loc[df['買/賣'] == '買', '價格'],
     mode='markers',
-    marker=dict(symbol='triangle-up-open', color='black', line=dict(color='black', width=2), size=10),
+    marker=dict(symbol='triangle-up', color='black', line=dict(color='black', width=2), size=13),
     text=df.loc[df['買/賣'] == '買', '買/賣'],
     customdata=df.loc[df['買/賣'] == '買', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
@@ -246,7 +246,7 @@ def index():
     fig.add_trace(go.Scatter(x=df.loc[df['買/賣'] == '賣', '日期'],
     y=df.loc[df['買/賣'] == '賣', '價格'],
     mode='markers',
-    marker=dict(symbol='triangle-down-open', color='black', line=dict(color='black', width=2), size=10),
+    marker=dict(symbol='triangle-down', color='black', line=dict(color='black', width=2), size=13),
     text=df.loc[df['買/賣'] == '賣', '買/賣'],
     customdata=df.loc[df['買/賣'] == '賣', ['數量', '原因']],
     hovertemplate='<b>日期</b>: %{x}<br><b>價格</b>: %{y}<br><b>數量</b>: %{customdata[0]}<br><b>買賣</b>: %{text}<br><b>原因</b>: %{customdata[1]}<extra></extra>'),
@@ -426,6 +426,7 @@ def add_trade():
 @app.route('/delete_trade/<int:trade_id>', methods=['GET', 'POST'])
 def delete_trade(trade_id):
     global trade_df
+    stock_symbol = request.form.get("stock_symbol")
     trade_df = trade_df[~(trade_df['trade_id'] == trade_id)]
     trade_df.to_csv('trades.csv', mode='w', encoding='utf-8-sig', index=False)
     return redirect(url_for('index', stock_symbol=stock_symbol))
@@ -668,9 +669,11 @@ def add_review(review_id):
     dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(stock_data['date'])]
     dt_break = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
     stock_data['MFI'] = ta.mfi(stock_data['high'], stock_data['low'], stock_data['close'], stock_data['Volume'], length=5)
-    # stock_data['CCI'] = ta.mfi(stock_data['high'], stock_data['low'], stock_data['close'], stock_data['Volume'], length=20)
-    # stock_copy['RSI'] = ta.rsi(stock_copy['Close'], length=20)
-
+    stock_data['CCI'] = ta.cci(stock_data['high'], stock_data['low'], stock_data['close'], timeperiod=20)
+    stock_data['RSI'] = ta.rsi(stock_copy['Close'], length=20)
+    stock_data['vol5'] = stock_data['Volume'].rolling(window=5).mean()
+    stock_data['vol20'] = stock_data['Volume'].rolling(window=20).mean()
+    print(stock_data['CCI'])
     data = stock_data.to_json(orient='records')
 
 

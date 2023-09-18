@@ -76,7 +76,11 @@
                 <td>{{ review['交易期間'] }}</td>
                 <td>{{ review['股票名稱'] }}</td>
                 <td>{{ review['獲利'] }}</td>
+                {% if '%' in review['報酬率']|string %}
+                <td>{{ review['報酬率'] }}</td>
+                {% else %}
                 <td>{{ review['報酬率'] }}%</td>
+                {% endif %}
                 <td>{{ review['交易筆數'] }}</td>
                 <td>{{ review['使用規則'] }}</td>
                 <td>
