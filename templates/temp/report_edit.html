@@ -37,7 +37,7 @@
       text-align: center;
       background: #1BB295;
       transition: 0.2s ease;
-      margin-left: 10px;
+        margin-left: 10px;
     }
     .zoom-btn:hover{
         background: #179b81;
@@ -52,7 +52,7 @@
 
 </head>
 <body>
-    {% include 'navbar.html' %}
+    {% include 'temp/navbar.html' %}
     <div class='grid-container'>
             <div class="graph1">
                 <div class="title">
@@ -78,59 +78,27 @@
     <table class="profile-table">
     <tr>
         <td>股票名稱</td>
-        {% if review %}
-            <td>{{ review[0]['股票名稱'] }}</td>
-        {% else %}
-            <td>{{ option }}</td>
-        {% endif %}
+        <td>{{ sname }}</td>
     </tr>
     <tr>
         <td>獲利</td>
-        {% if review %}
-            <td id='data2'>{{ review[0]['獲利'] }}</td>
-        {% else %}
-            <td id='data2'>{{ basic_info['獲利'] }}</td>
-        {% endif %}
+        <td id='data2'>{{ earning }}</td>
     </tr>
     <tr>
         <td>報酬率</td>
-        {% if review %}
-            {% if '%' in review[0]['報酬率']|string %}
-            <td id='data3'>{{ review[0]['報酬率'] }}</td>
-            {% else %}
-            <td id='data3'>{{ review[0]['報酬率'] }}%</td>
-            {% endif %}
-        {% else %}
-            {% if '%' in basic_info['報酬率']|string %}
-            <td id='data3'>{{ basic_info['報酬率'] }}</td>
-            {% else %}
-            <td id='data3'>{{ basic_info['報酬率'] }}%</td>
-            {% endif %}            
-        {% endif %}
+        <td id='data3'>{{ earate }}%</td>
     </tr>
     <tr>
         <td>交易筆數</td>
-        {% if review %}
-            <td id='data4'>{{ review[0]['交易筆數'] }}</td>
-        {% else %}
-            <td id='data4'>{{ basic_info['交易筆數'] }}</td>
-        {% endif %}
+        <td>{{ trades|length }}</td>
     </tr>
     <tr>
         <td>交易期間</td>
-        {% if review %}
-            <td id='data5'>{{ review[0]['交易期間'] }}</td>
-        {% else %}
-            <td id='data5'>{{ basic_info['交易期間'] }}</td>
-        {% endif %}
+        <td>{{ min_date }}到{{ max_date }}</td>
     </tr>
     <tr>
         <td>使用策略</td>
-        {% if review %}
-            <td>{{ review[0]['使用規則'] }}</td>
-        {% else %}
-            <td>{{ rule }}</td>
-        {% endif %}
+        <td>{{ strategy_name }}</td>
     </tr>
 </table>
     </div>
@@ -200,8 +168,30 @@
         <div class="title">
             <h3>自訂項目</h3>
         </div>
-
+        <input type="hidden" id="trade_id" name="trade_id" value="">
         <div class="content">
+<!--             <div class="item">
+                <label>
+                    <input type="radio" name="item1" class="checkmark-radio">
+                    <span>✔</span>
+                </label>
+                <label>
+                    <input type="radio" name="item1" class="cross-radio">
+                    <span>✘</span>
+                </label>
+                項目1
+            </div>
+            <div class="item">
+                <label>
+                    <input type="radio" name="item2" class="checkmark-radio">
+                    <span>✔</span>
+                </label>
+                <label>
+                    <input type="radio" name="item2" class="cross-radio">
+                    <span>✘</span>
+                </label>
+                項目2
+            </div> -->
         </div>
         <div class="button">
             <input type="submit" value="更新" class="submit-button">
@@ -210,17 +200,13 @@
 
 </div>
 <div class="block6">
-    {% if review %}
-        <form action="{{ url_for('edit_review', review_id=review[0]['review_id']) }}" method="post" >
-    {% else %}
-        <form action="{{ url_for('update_review') }}" method="post" >
-    {% endif %}
-    <input type="hidden" id="stock_name" name="stock_name" value='{{ option }}'>
+    <form action="{{ url_for('temp_edit_report', report_id=report.id) }}" method="post" >
+    <input type="hidden" id="sname" name="sname" value='{{ sname }}'>
     <input type="hidden" id="profit" name="profit">
     <input type="hidden" id="ratio" name="ratio">
     <input type="hidden" id="number" name="number">
     <input type="hidden" id="duration" name="duration">
-    <input type="hidden" id="rule" name="rule" value='{{ rule }}'>
+    <input type="hidden" id="strategy_name" name="strategy_name" value='{{ strategy_name }}'>
     <div class="title">
           <label for="myTextarea"><h3>結論</h3></label>
     </div>
@@ -228,16 +214,12 @@
 
 
 
-    {% if review %}
-        <textarea class="textarea" name="myTextarea" rows="3">{{ review[0]['結論'] }}</textarea><br>
-    {% else %}
-            <textarea class="textarea" name="myTextarea" rows="3"></textarea><br>
-    {% endif %}
+    <textarea class="textarea" name="myTextarea" rows="3">{{ conclusion }}</textarea><br>
+
             
     </div>
     <div class="button">
             <input type="submit" value="提交" class="submit-button">
-
     </div>
     </form>
 </div>
@@ -253,7 +235,6 @@
 
 
     <script type="text/javascript">
-
 
         const chartDiv = document.querySelector(".chart_div");
         var dt_break = {{ dt_break|tojson }};
@@ -271,8 +252,8 @@
         });
 
         // 從Flask傳遞的數據
-        var data = {{ data|safe }};
-        var trade_data = {{ trade_data|safe }};
+        var data = {{ stock_data|safe }};
+        var trade_data = {{ data_all|safe }};
         console.log(data)
         console.log(trade_data)
         // 解析JSON字符串為JavaScript對象
@@ -281,11 +262,11 @@
 
         // 使用Plotly.js繪製蠟燭圖和移動平均線
         var trace1 = {
-            x: data.map(d => d.date),
-            open: data.map(d => d.open),
-            high: data.map(d => d.high),
-            low: data.map(d => d.low),
-            close: data.map(d => d.close),
+            x: data.map(d => d.Date),
+            open: data.map(d => d.Open),
+            high: data.map(d => d.High),
+            low: data.map(d => d.Low),
+            close: data.map(d => d.Close),
             type: 'candlestick',
             name: '股票價格',
             hovertemplate: '<b>日期:%{x}</b><br><b>開:%{open:$.2f}</b><br><b>收:%{close:$.2f}</b><br><b>高:%{high:$.2f}</b><br><b>低:%{low:$.2f}</b><extra></extra>',
@@ -293,23 +274,25 @@
         };
 
         var trace2 = {
-            x: data.map(d => d.date),
+            x: data.map(d => d.Date),
             y: data.map(d => d.MA5),
             type: 'scatter',
-            name: 'MA5'
+            name: 'MA5',
+            hovertemplate: '<b>日期:%{x}</b><br><b>MA5:%{y:$.2f}</b><extra></extra>',
         };
 
         var trace3 = {
-            x: data.map(d => d.date),
+            x: data.map(d => d.Date),
             y: data.map(d => d.MA20),
             type: 'scatter',
-            name: 'MA20'
+            name: 'MA20',
+            hovertemplate: '<b>日期:%{x}</b><br><b>MA20:%{y:$.2f}</b><extra></extra>',
         };
 
         var trace4 = {
-            x: trade_data.filter(d => d.type === 'buy').map(d => d.date),
-            y: trade_data.filter(d => d.type === 'buy').map(d => d.price),
-            text: trade_data.filter(d => d.type === 'sell').map(d => d.volume), // 添加成交量信息
+            x: trade_data.filter(d => d.Type === '買').map(d => d.Date),
+            y: trade_data.filter(d => d.Type === '買').map(d => d.Price),
+            text: trade_data.filter(d => d.Type === '買').map(d => d.Id),
             mode: 'markers',
             type: 'scatter',
             name: '買點',
@@ -322,15 +305,14 @@
                   width: 2 // 設定框線粗細
                 }
             },
-            hovertemplate: '<b>日期:%{x}</b><br><b>買價:%{y:$.2f}</b><br><b>股數:%{text}</b><extra></extra>',
+            hovertemplate: '<b>日期:%{x}</b><br><b>買價:%{y:$.2f}</b><extra></extra>',
 
         };
 
         var trace5 = {
-            x: trade_data.filter(d => d.type === 'sell').map(d => d.date),
-            y: trade_data.filter(d => d.type === 'sell').map(d => d.price),
-            text: trade_data.filter(d => d.type === 'sell').map(d => d.volume), // 添加成交量信息
-            mode: 'markers',
+            x: trade_data.filter(d => d.Type === '賣').map(d => d.Date),
+            y: trade_data.filter(d => d.Type === '賣').map(d => d.Price),
+            text: trade_data.filter(d => d.Type === '賣').map(d => d.Id), // 添加成交量信息            mode: 'markers',
             type: 'scatter',
             name: '賣點',
             marker: {
@@ -342,24 +324,24 @@
                   width: 2 // 設定框線粗細
                 }
             },
-            hovertemplate: '<b>日期:%{x}</b><br><b>賣價:%{y:$.2f}</b><br><b>股數:%{text}</b><extra></extra>',
+            hovertemplate: '<b>日期:%{x}</b><br><b>賣價:%{y:$.2f}</b><extra></extra>',
         };
         var trace6 = {
-            x: data.map(d => d.date),
+            x: data.map(d => d.Date),
             y: data.map(d => d.MA60),
             type: 'scatter',
             name: 'MA60'
         };
 
         var trace7 = {
-            x: data.map(d => d.date),
+            x: data.map(d => d.Date),
             y: data.map(d => d.MA50),
             type: 'scatter',
             name: 'MA50'
         };
 
-        var trace_mfi = {
-          x: data.map(d => d.date),
+        var trace8 = {
+          x: data.map(d => d.Date),
           y: data.map(d => d.MFI), // MFI 數據
           type: 'scatter',
           name: 'MFI',
@@ -372,7 +354,7 @@
 
 
         var up_line = {
-          x: [data[0].date, data[data.length - 1].date],
+          x: [data[0].Date, data[data.length - 1].Date],
           type: 'scatter',
           mode: 'lines',
           line: {color:'red', dash:'dash'},
@@ -382,7 +364,7 @@
         };
 
         var middle_line = {
-          x: [data[0].date, data[data.length - 1].date],
+          x: [data[0].Date, data[data.length - 1].Date],
           type: 'scatter',
           mode: 'lines',
           line: {color:'blue', dash:'dash'},
@@ -392,7 +374,7 @@
         };
 
         var bottom_line = {
-          x: [data[0].date, data[data.length - 1].date],
+          x: [data[0].Date, data[data.length - 1].Date],
           type: 'scatter',
           mode: 'lines',
           line: {color:'green', dash:'dash'},
@@ -402,7 +384,7 @@
         };
 
         var trace_vol5 = {
-          x: data.map(d => d.date),
+          x: data.map(d => d.Date),
           y: data.map(d => d.vol5), 
           type: 'scatter',
           line: {color:'red'},
@@ -413,7 +395,7 @@
         };
 
         var trace_vol20 = {
-          x: data.map(d => d.date),
+          x: data.map(d => d.Date),
           y: data.map(d => d.vol20),
           type: 'scatter',
           line: {color:'green'},
@@ -424,7 +406,7 @@
         };
 
         var trace_cci = {
-          x: data.map(d => d.date),
+          x: data.map(d => d.Date),
           y: data.map(d => d.CCI),
           type: 'scatter',
           name: 'CCI',
@@ -434,7 +416,7 @@
         };
 
         var trace_rsi = {
-          x: data.map(d => d.date),
+          x: data.map(d => d.Date),
           y: data.map(d => d.RSI),
           type: 'scatter',
           name: 'RSI',
@@ -506,7 +488,7 @@
 
 
         Plotly.newPlot('plot', [trace1, trace2, trace3, trace4, trace5, trace6, trace7], layout);
-        Plotly.newPlot('chart', [trace1, trace2, trace3, trace4, trace5, trace6, trace7, trace_mfi , up_line, middle_line, bottom_line], zoom_in_layout);
+        Plotly.newPlot('chart', [trace1, trace2, trace3, trace4, trace5, trace6, trace7, trace_cci , up_line, middle_line, bottom_line], zoom_in_layout);
 
         var plotDiv = document.getElementById('plot');
         plotDiv.on('plotly_click', function(data){
@@ -515,23 +497,21 @@
                 document.getElementById("date").innerHTML = point.x;
                 document.getElementById("action").innerHTML = point.data.name ;
                 document.getElementById("price").innerHTML = point.y;
-                document.getElementById("volume").innerHTML = point.text;
+                var Id = point.text;
+
                 fetch('/check_point', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        date: point.x,
-                        price: point.y,
-                        type: point.data.name === '買點' ? 'buy' : 'sell',
-                        option: "{{option}}",
-                        rule: "{{rule}}",
+                        Id: Id,
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
-
+                    document.getElementById("volume").innerHTML = data['Volume'];
+                    document.getElementById("trade_id").value = Id;
                     var follow = document.getElementById('follow');
                     while (follow.firstChild) {
                         follow.removeChild(follow.firstChild);
@@ -660,29 +640,6 @@
                     submit.type = 'submit';
                     console.log("form", form)
 
-                    // 創建第一個隱藏輸入字段
-                    var input1 = document.createElement('input');
-                    input1.type = 'hidden';
-                    input1.id = 'hiddenDate';
-                    input1.name = 'date';
-                    input1.value = document.getElementById("date").innerHTML;
-                    content.appendChild(input1); // 將輸入字段添加到表單中
-
-                    // 創建第二個隱藏輸入字段
-                    var input2 = document.createElement('input');
-                    input2.type = 'hidden';
-                    input2.id = 'hiddenPrice';
-                    input2.name = 'price';
-                    input2.value = document.getElementById("price").innerHTML;
-                    content.appendChild(input2); // 將輸入字段添加到表單中
-
-                    // 創建第三個隱藏輸入字段
-                    var input3 = document.createElement('input');
-                    input3.type = 'hidden';
-                    input3.id = 'hiddenAction';
-                    input3.name = 'action';
-                    input3.value = document.getElementById("action").innerHTML;
-                    content.appendChild(input3); // 將輸入字段添加到表單中
 
                     for (let custom of stay) {
                         if(custom != 'nan'){
@@ -715,15 +672,9 @@
             }
         });
         window.onload = function() {
-            var profit = document.getElementById("data2").innerHTML;
-            document.getElementById("profit").value = profit;
-            var ratio = document.getElementById("data3").innerHTML;
-            document.getElementById("ratio").value = ratio;
-            var number = document.getElementById("data4").innerHTML;
-            document.getElementById("number").value = number;
-            var duration = document.getElementById("data5").innerHTML;
-            document.getElementById("duration").value = duration;
-
+            document.getElementById("profit").value = {{ earning|safe }};
+            document.getElementById("ratio").value = {{ earate|safe }};
+            document.getElementById("number").value = {{ trades|length|safe }};
       }
 
         // 获取按钮和两个图形元素

@@ -4,7 +4,7 @@ import pandas as pd
 import twstock
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
 import math
 import os
 from flask_sqlalchemy import SQLAlchemy
@@ -21,6 +21,13 @@ from plotly.subplots import make_subplots
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import MetaData
 import pandas_ta as ta
+from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
+from tool import get_graph
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Column, Integer, String, JSON
+import json
+from io import StringIO
 pd.options.mode.chained_assignment = None  # default='warn'
 
 app = Flask(__name__, static_folder='static')
@@ -60,12 +67,218 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
+    defineOpt = db.Column(JSON, nullable=True)
+    strategies = db.relationship('Strategy', backref='user', lazy=True)
+    trades = db.relationship('Trade', backref='user', lazy=True)
+    reports = db.relationship('Report', backref='user', lazy=True)
+
+    def add_define_option(self, name):
+        if self.defineOpt is None:
+            self.defineOpt = []
+        self.defineOpt.append(name)
+        db.session.commit()
+
+    def delete_define_option(self, name):
+        self.defineOpt = list(self.defineOpt).remove(name)
+        db.session.commit()
+
 
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
+class Strategy(db.Model):
+    __tablename__ = 'strategies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20), nullable=False, unique=True)
+    defines = db.Column(JSON, nullable=True)
+    indicators = db.Column(JSON, nullable=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    trades = db.relationship('Trade', backref='strategy', lazy=True)
+    report = db.relationship('Report', uselist=False, back_populates='strategy')
+
+    @classmethod
+    def get_strategy_by_name(cls, name):
+        return cls.query.filter_by(name=name, user_id=int(current_user.get_id())).first()
+
+    @classmethod
+    def get_user_strategies(cls):
+        return cls.query.filter_by(user_id=int(current_user.get_id())).all()
+
+    @classmethod
+    def get_user_defines(cls):
+        strategies = cls.query.filter_by(user_id=int(current_user.get_id())).all()
+        all_defines = set()
+        for strategy in strategies:
+            all_defines.update(strategy.defines)
+        return list(all_defines)
+
+
+
+    @classmethod
+    def get(cls, id):
+        return cls.query.filter_by(id=id, user_id=int(current_user.get_id())).first()
+    
+    def add(self):
+        try:
+            db.session.add(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+    def edit(self, new_data):
+        for key, value in new_data.items():
+            setattr(self, key, value)
+        try:
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+    def delete(self):
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+class Trade(db.Model):
+    __tablename__ = 'trades'
+
+    id = db.Column(db.Integer, primary_key=True)
+    sname = db.Column(db.String(20))
+    scode = db.Column(db.String(20))
+    price = db.Column(db.Float)
+    quan = db.Column(db.Integer)
+    action = db.Column(db.String(20))
+    reason = db.Column(db.String(20))
+    date = db.Column(db.DateTime)
+    follow = db.Column(JSON, nullable=True)
+    violate = db.Column(JSON, nullable=True)
+    strategyName = db.Column(db.String(80))
+
+    strategy_id = db.Column(db.Integer, db.ForeignKey('strategies.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    report_id = db.Column(db.Integer, db.ForeignKey('reports.id'), nullable=True)
+
+    @classmethod
+    def get_user_trades(cls):
+        return cls.query.filter_by(user_id=int(current_user.get_id())).all()
+
+    @classmethod
+    def get_stock_trades(cls, sname):
+        return cls.query.filter_by(sname=sname, user_id=int(current_user.get_id())).all()
+
+    @classmethod
+    def get_stock_buy(cls, sname):
+        return cls.query.filter_by(sname=sname, action="買").all()
+
+    @classmethod
+    def get_stock_sell(cls, sname):
+        return cls.query.filter_by(sname=sname, action="賣").all()
+
+    @classmethod
+    def get(cls, id):
+        return cls.query.filter_by(id=id, user_id=int(current_user.get_id())).first()
+
+    @classmethod
+    def get_by_sname(cls, sname):
+        return cls.query.filter_by(sname=sname, user_id=int(current_user.get_id())).all()
+
+    @classmethod
+    def get_by_report(cls, strategyName, sname):
+        return cls.query.filter_by(strategyName=strategyName, sname=sname, user_id=int(current_user.get_id())).all()
+
+    def add(self):
+        try:
+            db.session.add(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+    def edit(self, new_data):
+        for key, value in new_data.items():
+            setattr(self, key, value)
+        try:
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+    def delete(self):
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+class Report(db.Model):
+    __tablename__ = 'reports'
+    id = db.Column(db.Integer, primary_key=True)
+    sname = db.Column(db.String(20))
+    earate = db.Column(db.Float)
+    earning = db.Column(db.Float)
+    conclusion = db.Column(db.String(80))
+    strategyName = db.Column(db.String(80))
+    min_date = db.Column(db.DateTime)
+    max_date = db.Column(db.DateTime)
+
+    strategy_id = db.Column(db.Integer, db.ForeignKey('strategies.id'))
+    strategy = db.relationship('Strategy', back_populates='report')
+
+    trades = db.relationship('Trade', backref='report', lazy=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    @classmethod
+    def get(cls, id):
+        return cls.query.filter_by(id=id, user_id=int(current_user.get_id())).first()
+
+    @classmethod
+    def get_user_reports(cls):
+        return cls.query.filter_by(user_id=int(current_user.get_id())).all()
+
+    def add(self):
+        try:
+            db.session.add(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+    def edit(self, new_data):
+        for key, value in new_data.items():
+            setattr(self, key, value)
+        try:
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
+
+    def delete(self):
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except SQLAlchemyError as e:
+            print(e)
+            return False
+        return True
 
 class RegisterForm(FlaskForm):
     username = StringField(validators=[
@@ -128,6 +341,873 @@ def register():
 
     return render_template('register.html', form=form)
 
+@app.route('/temp/trade_page', methods=['GET', 'POST'])
+@login_required
+def trade_page():
+    scode = "2330.TW"
+    if request.method=='POST':
+        scode = request.form['scode']
+    elif request.args.get('scode', ''):
+        scode = request.args.get('scode', '')
+
+    scode_num = scode.split('.')[0]
+    sname = twstock.codes[scode_num].name
+    stock = twstock.Stock(scode_num)
+
+    trades = Trade.get_stock_trades(sname)
+    buy_point = Trade.get_stock_buy(sname)
+    sell_point = Trade.get_stock_sell(sname)
+
+    if trades:
+        start_date = min(trade.date for trade in trades) - relativedelta(months=2)
+        end_date = max(trade.date for trade in trades) + relativedelta(days=2)
+        data = stock.fetch_from(start_date.year, start_date.month)
+        data = [d for d in data if start_date <= d.date <= end_date]
+    else:
+        data = stock.fetch_from(2023, 7)
+    graph = get_graph(data, buy_point, sell_point)
+    return render_template('temp/trade_page.html', trades=trades, sname=sname, scode=scode, graph=graph)
+
+
+
+@app.route('/temp/add_trade', methods=['GET', 'POST'])
+@login_required
+def temp_add_trade():
+    user_id = int(current_user.get_id())
+
+    date = request.form['date']
+    date = datetime.strptime(date, '%Y-%m-%d')
+
+    scode = request.form['scode']
+    sname = request.form['sname']
+    price = request.form['price']
+    quan = request.form['quan']
+    action = request.form['action']
+    reason = request.form['reason']
+    strategy_name = request.form['strategy_name']
+    strategy = Strategy.get_strategy_by_name(strategy_name)
+
+    for strategy in Strategy.get_user_strategies():
+        print(strategy.name)
+    trade = Trade(sname=sname, scode=scode, price=price, quan=quan, action=action, reason=reason, date=date,
+        follow=None, violate=None, strategy_id=strategy.id, user_id=user_id, report_id=None, strategyName=strategy_name)
+    trade.add()
+
+    return redirect(url_for('trade_page', scode=scode))
+
+@app.route('/temp/delete_trade/<int:trade_id>', methods=['GET', 'POST'])
+@login_required
+def temp_delete_trade(trade_id):
+    trade = Trade.get(trade_id)
+    scode = trade.scode
+    trade.delete()
+    return redirect(url_for('trade_page', scode=scode))
+
+
+@app.route('/temp/edit_trade/<int:trade_id>', methods=['GET', 'POST'])
+@login_required
+def temp_edit_trade(trade_id):
+    trade = Trade.get(trade_id)
+    if request.method == "POST":
+        scode = request.form['scode']
+        date = request.form['date']
+        date = datetime.strptime(date, '%Y-%m-%d')
+
+        strategy_name = request.form['strategy_name']
+        strategy = Strategy.get_strategy_by_name(strategy_name)
+
+        new_data = {
+            'price': request.form['price'],
+            'quan':  request.form['quan'],
+            'action':  request.form['action'],
+            'reason':  request.form['reason'],
+            'strategy_id' : strategy.id,
+            'date': date,
+            'strategyName': strategy.name,
+        }
+        trade.edit(new_data)
+        return redirect(url_for('trade_page', scode=scode))
+
+    else:
+        return render_template('temp/trade_edit.html', trade=trade)
+
+
+@app.route('/temp/strategy_page/', methods=['GET', 'POST'])
+@login_required
+def strategy_page():
+    strategies = Strategy.get_user_strategies()
+    defines = current_user.defineOpt
+    if request.method == 'POST':
+        user_id = int(current_user.get_id())
+        defines = request.form.getlist('defines')
+        strategy_name = request.form["strategy_name"]
+        strategy_id = request.form["strategy_id"]
+        indicators = [
+            request.form.get("term", ''),
+            request.form.get("trend", ''),
+            request.form.get("oscillators", ''),
+            request.form.get("volatility", ''),
+            request.form.get("energy", '')
+        ]
+
+
+        if strategy_id:
+            strategy = Strategy.get(strategy_id)
+            new_data = {
+                'name':strategy_name, 
+                'indicators':indicators, 
+                'defines':defines
+            }
+            strategy.edit(new_data)
+
+
+        else:
+            strategy = Strategy(user_id=user_id, name=strategy_name, indicators=indicators, defines=defines)
+            strategy.add()
+
+        return redirect(url_for('strategy_page'))
+
+    return render_template('temp/strategy_page.html', strategies=strategies, defines=defines)
+
+
+@app.route('/temp/delete_strategy/<int:strategy_id>', methods=['GET', 'POST'])
+@login_required
+def temp_delete_strategy(strategy_id):
+    strategy = Strategy.get(strategy_id)
+    strategy.delete()
+    return redirect(url_for('strategy_page'))
+
+@app.route('/temp/add_define', methods=['GET', 'POST'])
+@login_required
+def temp_add_define():
+    define_name = request.form['define_name']
+    current_user.add_define_option(define_name)
+    return redirect(url_for('strategy_page'))
+
+
+@app.route('/temp/delete_define', methods=['GET', 'POST'])
+@login_required
+def temp_delete_define():
+    define_name = request.form['define_name']
+    current_user.delete_define_option(define_name)
+    print(define_name, current_user.defineOpt)
+    return redirect(url_for('strategy_page'))
+
+
+
+@app.route('/temp/report_page/', methods=['GET', 'POST'])
+@login_required
+def report_page():
+    reports = Report.get_user_reports()
+    strategies = Strategy.get_user_strategies()
+    strategy_option = [strategy.name for strategy in strategies]
+    if request.method == 'POST':
+        strategy_name = request.form.get('strategy_name', "")
+        sname = request.form.get('sname', "")
+        return redirect(url_for("temp_add_report", strategy_name=strategy_name, sname=sname))
+    return render_template('temp/report_page.html', reports=reports, strategy_option=strategy_option)
+
+@app.route('/temp/delete_report/<int:report_id>', methods=['GET', 'POST'])
+@login_required
+def temp_delete_report(report_id):
+    report = Report.get(report_id)
+    report.delete()
+    return redirect(url_for("report_page"))
+
+
+@app.route('/temp/edit_report/<int:report_id>', methods=['GET', 'POST'])
+@login_required
+def temp_edit_report(report_id):
+    user_id = current_user.get_id()
+    if request.method == 'POST':
+        report = Report.get(report_id)
+        strategy_name = request.form.get('strategy_name', "")
+        sname = request.form.get('sname', "")
+        trades = Trade.get_by_report(strategy_name, sname)
+        conclusion = request.form.get('myTextarea')
+        investment = 0
+        earning = 0
+        min_date = min(trade.date.date() for trade in trades)
+        max_date = max(trade.date.date() for trade in trades)        
+        for trade in trades:
+            amount = trade.price * trade.quan
+            if trade.action == '賣':
+                earning -= amount
+            else:
+                earning += amount
+                investment += amount
+
+        
+        earning = round(earning)
+        earate = round(earning/investment,2)
+        strategy = Strategy.get_strategy_by_name(strategy_name)
+        new_data={
+            'conclusion':conclusion
+        }
+        report.edit(new_data)
+        return redirect(url_for('report_page'))
+    else:
+        report = Report.get(report_id)
+        sname = report.trades[0].sname
+        strategy_name = report.strategyName
+        strategy = Strategy.get_strategy_by_name(strategy_name)
+        scode = Trade.get_by_sname(sname)[0].scode
+        trades = Trade.get_by_report(strategy_name, sname)
+        trades_data = pd.DataFrame([(trade.id, trade.price, trade.quan, trade.action, trade.reason, trade.date) for trade in trades], 
+                  columns=['Id', 'Price', 'Volume', 'Type', 'Reason', 'Date'])
+        
+        conclusion = report.conclusion
+        investment = 0
+        earning = 0
+
+        min_date = min(trade.date.date() for trade in trades)
+        max_date = max(trade.date.date() for trade in trades)
+
+        for trade in trades:
+            amount = trade.price * trade.quan
+            if trade.action == '賣':
+                earning -= amount
+            else:
+                earning += amount
+                investment += amount
+
+        
+        earning = round(earning)
+        earate = round(earning/investment,2)
+
+
+
+        print('trades', trades)
+
+        stock_symbol = scode.split('.')[0]
+        stock = twstock.Stock(stock_symbol)
+
+        start_date = min(trade.date for trade in trades) - relativedelta(months=3)
+        end_date = max(trade.date for trade in trades) + relativedelta(days=2)
+        data = stock.fetch_from(start_date.year, start_date.month)
+        data = [d for d in data if start_date <= d.date <= end_date]
+
+
+        stock_data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
+        
+        # 去掉無用欄位並且轉換 datetime => string
+        stock_data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
+
+
+        indicators = strategy.indicators
+        term = indicators[0]
+
+        if term == 'short':
+            args_day = 5
+        elif term == 'medium':
+            args_day = 20
+        else:
+            args_day = 50
+
+        # 趨勢指標
+        if 'sma' in indicators:
+            stock_data['sma'] = ta.sma(stock_data['Close'], length=args_day)
+
+        if 'ema' in indicators:
+            stock_data['ema'] = ta.ema(stock_data['Close'], length=args_day)
+
+        if 'wma' in indicators:
+            stock_data['wma'] = ta.wma(stock_data['Close'], length=args_day)
+
+        if 'hma' in indicators:
+            stock_data['hma'] = ta.hma(stock_data['Close'], length=args_day)
+
+        # 震盪指標
+        if 'rsi' in indicators:
+            stock_data['rsi'] = ta.rsi(stock_data['Close'], length=args_day)
+
+        if 'stoch' in indicators:
+            stock_data[['slowk', 'slowd']] = ta.stoch(stock_data['High'], stock_data['Low'], stock_data['Close'], fastk_period=args_day, slowk_period=3, slowd_period=3)
+        
+        if 'cci' in indicators:
+            stock_data['cci'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
+
+        # 通道指標
+        if 'bbl' in indicators:
+            stock_data[['bbm', 'bbh', 'bbl', 'bbb', 'bbp']] = ta.bbands(stock_data['Close'], length=args_day)
+        
+        if 'kc' in indicators:
+            stock_data[['kc', 'kcb', 'kct']] = ta.kc(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
+
+
+        # 能量指標
+        if 'cmf' in indicators:
+            stock_data['cmf'] = ta.cmf(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+        
+        if 'mfi' in indicators:
+            stock_data['mfi'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+        
+        stock_data['MA5'] = stock_data['Close'].rolling(window=5).mean()
+        stock_data['MA20'] = stock_data['Close'].rolling(window=20).mean()
+        stock_data['MA50'] = stock_data['Close'].rolling(window=50).mean()
+        stock_data['MA60'] = stock_data['Close'].rolling(window=60).mean()
+        stock_data['MFI'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=5)
+        stock_data['CCI'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], timeperiod=20)
+        stock_data['RSI'] = ta.rsi(stock_data['Close'], length=20)
+        stock_data['vol5'] = stock_data['Volume'].rolling(window=5).mean()
+        stock_data['vol20'] = stock_data['Volume'].rolling(window=20).mean()
+
+        dt_all = pd.date_range(start=stock_data['Date'].iloc[0],end=stock_data['Date'].iloc[-1])
+        dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(stock_data['Date'])]
+        dt_break = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
+
+        stock_data['Date'] = stock_data['Date'].dt.strftime('%Y-%m-%d')
+        trades_data['Date'] = trades_data['Date'].dt.strftime('%Y-%m-%d')
+
+        data_all = trades_data.merge(stock_data.drop(columns='Volume'), on='Date', how='left')
+        data_buy = data_all[data_all['Type'] == "買"]
+        data_sell = data_all[data_all['Type'] == "賣"]
+        generate_indicator_sheet(data_buy, 'buy', indicators)
+        generate_indicator_sheet(data_sell, 'sell', indicators)
+
+        fig, fig2 = analysis_graph(strategy.defines, trades)
+
+        stock_data = stock_data.to_json(orient='records')
+        data_all = data_all.to_json(orient='records')
+    return render_template('temp/report_edit.html', trades=trades, stock_data=stock_data, data_all=data_all, 
+        dt_break=dt_break, strategy_name=strategy_name, sname=sname, earning=earning, earate=earate, 
+        min_date=min_date, max_date=max_date, fig=fig, fig2=fig2, conclusion=conclusion, report=report)
+
+
+@app.route('/temp/add_report', methods=['GET', 'POST'])
+@login_required
+def temp_add_report():
+    user_id = current_user.get_id()
+    if request.method == 'POST':
+        strategy_name = request.form.get('strategy_name', "")
+        sname = request.form.get('sname', "")
+        trades = Trade.get_by_report(strategy_name, sname)
+        print(trades)
+        conclusion = request.form.get('myTextarea')
+        investment = 0
+        earning = 0
+        min_date = min(trade.date.date() for trade in trades)
+        max_date = max(trade.date.date() for trade in trades)        
+        for trade in trades:
+            amount = trade.price * trade.quan
+            if trade.action == '賣':
+                earning -= amount
+            else:
+                earning += amount
+                investment += amount
+
+        
+        earning = round(earning)
+        earate = round(earning/investment,2)
+        strategy = Strategy.get_strategy_by_name(strategy_name)
+        report = Report(user_id=user_id, sname=sname, earate=earate, earning=earning, trades=trades, 
+            conclusion=conclusion ,strategy=strategy, strategyName=strategy_name, min_date=min_date,
+            max_date=max_date)
+        report.add()
+        return redirect(url_for('report_page'))
+    else:
+        strategy_name = request.args.get('strategy_name', "")
+        sname = request.args.get('sname', "")
+
+        strategy = Strategy.get_strategy_by_name(strategy_name)
+        scode = Trade.get_by_sname(sname)[0].scode
+        trades = Trade.get_by_report(strategy_name, sname)
+        trades_data = pd.DataFrame([(trade.id, trade.price, trade.quan, trade.action, trade.reason, trade.date) for trade in trades], 
+                  columns=['Id', 'Price', 'Volume', 'Type', 'Reason', 'Date'])
+        
+
+        investment = 0
+        earning = 0
+
+        min_date = min(trade.date.date() for trade in trades)
+        max_date = max(trade.date.date() for trade in trades)
+
+        for trade in trades:
+            amount = trade.price * trade.quan
+            if trade.action == '賣':
+                earning -= amount
+            else:
+                earning += amount
+                investment += amount
+
+        
+        earning = round(earning)
+        earate = round(earning/investment,2)
+
+
+
+        print('trades', trades)
+
+        stock_symbol = scode.split('.')[0]
+        stock = twstock.Stock(stock_symbol)
+
+        start_date = min(trade.date for trade in trades) - relativedelta(months=3)
+        end_date = max(trade.date for trade in trades) + relativedelta(days=2)
+        data = stock.fetch_from(start_date.year, start_date.month)
+        data = [d for d in data if start_date <= d.date <= end_date]
+
+
+        stock_data = pd.DataFrame(data, columns=['Date', 'Volume', 'turnover' , 'Open', 'High', 'Low', 'Close', 'change', 'transaction'])
+        
+        # 去掉無用欄位並且轉換 datetime => string
+        stock_data.drop(['turnover', 'transaction', 'change'], axis=1, inplace=True)
+
+
+        indicators = strategy.indicators
+        term = indicators[0]
+
+        if term == 'short':
+            args_day = 5
+        elif term == 'medium':
+            args_day = 20
+        else:
+            args_day = 50
+
+        # 趨勢指標
+        if 'sma' in indicators:
+            stock_data['sma'] = ta.sma(stock_data['Close'], length=args_day)
+
+        if 'ema' in indicators:
+            stock_data['ema'] = ta.ema(stock_data['Close'], length=args_day)
+
+        if 'wma' in indicators:
+            stock_data['wma'] = ta.wma(stock_data['Close'], length=args_day)
+
+        if 'hma' in indicators:
+            stock_data['hma'] = ta.hma(stock_data['Close'], length=args_day)
+
+        # 震盪指標
+        if 'rsi' in indicators:
+            stock_data['rsi'] = ta.rsi(stock_data['Close'], length=args_day)
+
+        if 'stoch' in indicators:
+            stock_data[['slowk', 'slowd']] = ta.stoch(stock_data['High'], stock_data['Low'], stock_data['Close'], fastk_period=args_day, slowk_period=3, slowd_period=3)
+        
+        if 'cci' in indicators:
+            stock_data['cci'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
+
+        # 通道指標
+        if 'bbl' in indicators:
+            stock_data[['bbm', 'bbh', 'bbl', 'bbb', 'bbp']] = ta.bbands(stock_data['Close'], length=args_day)
+        
+        if 'kc' in indicators:
+            stock_data[['kc', 'kcb', 'kct']] = ta.kc(stock_data['High'], stock_data['Low'], stock_data['Close'], length=args_day)
+
+
+        # 能量指標
+        if 'cmf' in indicators:
+            stock_data['cmf'] = ta.cmf(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+        
+        if 'mfi' in indicators:
+            stock_data['mfi'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=args_day)
+        
+        stock_data['MA5'] = stock_data['Close'].rolling(window=5).mean()
+        stock_data['MA20'] = stock_data['Close'].rolling(window=20).mean()
+        stock_data['MA50'] = stock_data['Close'].rolling(window=50).mean()
+        stock_data['MA60'] = stock_data['Close'].rolling(window=60).mean()
+        stock_data['MFI'] = ta.mfi(stock_data['High'], stock_data['Low'], stock_data['Close'], stock_data['Volume'], length=5)
+        stock_data['CCI'] = ta.cci(stock_data['High'], stock_data['Low'], stock_data['Close'], timeperiod=20)
+        stock_data['RSI'] = ta.rsi(stock_data['Close'], length=20)
+        stock_data['vol5'] = stock_data['Volume'].rolling(window=5).mean()
+        stock_data['vol20'] = stock_data['Volume'].rolling(window=20).mean()
+
+        dt_all = pd.date_range(start=stock_data['Date'].iloc[0],end=stock_data['Date'].iloc[-1])
+        dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(stock_data['Date'])]
+        dt_break = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
+
+        stock_data['Date'] = stock_data['Date'].dt.strftime('%Y-%m-%d')
+        trades_data['Date'] = trades_data['Date'].dt.strftime('%Y-%m-%d')
+
+        data_all = trades_data.merge(stock_data.drop(columns='Volume'), on='Date', how='left')
+        data_buy = data_all[data_all['Type'] == "買"]
+        data_sell = data_all[data_all['Type'] == "賣"]
+        generate_indicator_sheet(data_buy, 'buy', indicators)
+        generate_indicator_sheet(data_sell, 'sell', indicators)
+
+        fig, fig2 = analysis_graph(strategy.defines, trades)
+
+        stock_data = stock_data.to_json(orient='records')
+        data_all = data_all.to_json(orient='records')
+    return render_template('temp/report_add.html', trades=trades, stock_data=stock_data, data_all=data_all, 
+        dt_break=dt_break, strategy_name=strategy_name, sname=sname, earning=earning, earate=earate, 
+        min_date=min_date, max_date=max_date, fig=fig, fig2=fig2)
+    # return render_template('add_report.html', fig2=fig2.to_html(), fig=fig.to_html(), custom_list=custom_list, basic_info=basic_info, option=option, rule=rule, buy_df=buy_df, sell_df=sell_df, data=data, trade_data=trade_data, dt_break=dt_break)
+
+
+# @app.route('/update_custom', methods=['POST'])
+# def update_custom():
+#     data = request.form.to_dict()
+#     trade_id = data['trade_id']
+#     trade = Trade.get(id=trade_id)
+#     follow_item = [k for k, v in data.items() if v == '遵守']
+#     violate_item = [k for k, v in data.items() if v == '違反']
+#     print(follow_item, violate_item)
+#     new_data = {
+#         'follow' : follow_item,
+#         'violate' : violate_item
+#     }
+#     trade.edit(new_data)
+#     return redirect(request.referrer)
+
+
+def analysis_graph(items, trades):
+    csv_data = session.get('buy' + '_indicator_sheet')
+    buy_df = pd.read_csv(StringIO(csv_data))
+
+
+    buy_dict = {}
+    for item in items:
+        if '(買)'in item:
+            probabilities = {}
+            total_follow_item = sum(trade.follow.count(item) for trade in trades)
+            total_violate_item = sum(trade.violate.count(item) for trade in trades)
+
+            total_elements_item = total_follow_item + total_violate_item
+            probability = total_follow_item / total_elements_item if total_elements_item > 0 else 0
+
+            probabilities[item] = probability
+            buy_dict.update(probabilities)
+
+    buy_ratio = {col: buy_df[col].mean() for col in buy_df.columns if col.endswith('_buy')}
+    buy_ratio.update(buy_dict)
+
+
+    csv_data = session.get('sell' + '_indicator_sheet')
+    sell_df = pd.read_csv(StringIO(csv_data))
+
+    sell_dict = {}
+    for item in items:
+        if '(賣)'in item:
+            probabilities = {}
+            total_follow_item = sum(trade.follow.count(item) for trade in trades)
+            total_violate_item = sum(trade.violate.count(item) for trade in trades)
+
+            total_elements_item = total_follow_item + total_violate_item
+            probability = total_follow_item / total_elements_item if total_elements_item > 0 else 0
+
+            probabilities[item] = probability
+            sell_dict.update(probabilities)
+
+    sell_ratio = {col: sell_df[col].mean() for col in sell_df.columns if col.endswith('_sell')}
+    sell_ratio.update(sell_dict)
+    print(buy_ratio, sell_ratio)
+    fig = go.Figure([go.Bar(x=list(buy_ratio.keys()), y=list(buy_ratio.values()))])
+    fig.update_layout(xaxis_title='Indicator Name',
+        yaxis_title='True Probability',
+        autosize=False,
+        width=500,
+        height=280,
+        margin=dict(l=50, r=50, t=0, b=10),
+    )
+
+    fig2 = go.Figure([go.Bar(x=list(sell_ratio.keys()), y=list(sell_ratio.values()))])
+    fig2.update_layout(xaxis_title='Indicator Name',
+        yaxis_title='True Probability',
+        autosize=False,
+        width=500,
+        height=280,
+        margin=dict(l=50, r=50, t=0, b=10),
+    )
+    return fig.to_html(), fig2.to_html()
+
+
+
+def generate_indicator_sheet(data, action, indicators):
+    if action == "buy":
+        # 趨勢指標
+        if 'sma' in indicators:
+            data['sma_buy'] = data['Close'] > data['sma']
+
+        if 'ema' in indicators:
+            data['ema_buy'] = data['Close'] > data['ema']
+
+        if 'wma' in indicators:
+            data['wma_buy'] = data['Close'] > data['wma']
+
+        if 'hma' in indicators:
+            data['hma_buy'] = data['Close'] > data['hma']
+
+        # 震盪指標
+        if 'rsi' in indicators:
+            data['rsi_buy'] = data['rsi'] > 20
+
+        if 'stoch' in indicators:
+            data['stoch_buy'] = (data['slowd'] > 20) & (data['slowd'].shift(1) > 20)
+
+        if 'cci' in indicators:
+            data['cci_buy'] = data['cci'] > -100
+
+
+        # 通道指標
+
+        if 'bbl' in indicators:
+            data['bbl_buy'] = data['Close'] > data['bbl']
+
+        if 'kc' in indicators:
+            data['kc_buy'] = data['Close'] > data['kc']
+
+        # 能量指標
+
+        if 'cmf' in indicators:
+            data['cmf_buy'] = data['cmf'] > 0
+
+        if 'mfi' in indicators:
+            data['mfi_buy'] = data['mfi'] > 20
+
+    else:
+        # 趨勢指標
+        if 'sma' in indicators:
+            data['sma_sell'] = data['Close'] < data['sma']
+
+        if 'ema' in indicators:
+            data['ema_sell'] = data['Close'] < data['ema']
+
+        if 'wma' in indicators:
+            data['wma_sell'] = data['Close'] < data['wma']
+
+        if 'hma' in indicators:
+            data['hma_sell'] = data['Close'] < data['hma']
+
+        # 震盪指標
+        if 'rsi' in indicators:
+            data['rsi_sell'] = data['rsi'] < 50
+
+        if 'stoch' in indicators:
+            data['stoch_sell'] = (data['slowd'] < 80) & (data['slowd'].shift(1) < 80)
+
+        if 'cci' in indicators:
+            data['cci_sell'] = data['cci'] < 0
+
+        # 通道指標
+
+        if 'bbl' in indicators:
+            data['bbl_sell'] = data['Close'] < data['bbl']
+
+        if 'kc' in indicators:
+            data['kc_sell'] = data['Close'] < data['kc']
+
+        # 能量指標
+        if 'cmf' in indicators:
+            data['cmf_sell'] = data['cmf'] < 0
+
+        if 'mfi' in indicators:
+            data['mfi_sell'] = data['mfi'] < 50
+
+    csv_data = data.to_csv(index=False)
+    session[action + '_indicator_sheet'] = csv_data
+
+def get_point_data(action, Id):
+    csv_data = session.get(action + '_indicator_sheet')
+    dataframe = pd.read_csv(StringIO(csv_data))
+    dataframe = dataframe.loc[dataframe['Id'] == Id]
+    follow = []
+    violate = []
+    if action == 'buy':
+        if 'sma' in dataframe.columns:
+            if dataframe['sma_buy'].tolist()[0] == True:
+                follow.append("穿越 sma 後交易")
+            else:
+                violate.append("穿越 sma 後交易")
+
+        if 'ema' in dataframe.columns:
+            if dataframe['ema_buy'].tolist()[0] == True:
+                follow.append("穿越 ema 後交易")
+            else:
+                violate.append("穿越 ema 後交易")
+
+        if 'wma' in dataframe.columns:
+            if dataframe['wma_buy'].tolist()[0] == True:
+                follow.append("穿越 wma 後交易")
+            else:
+                violate.append("穿越 wma 後交易")
+
+        if 'hma' in dataframe.columns:
+            if dataframe['hma_buy'].tolist()[0] == True:
+                follow.append("穿越 hma 後交易")
+            else:
+                violate.append("穿越 hma 後交易")
+
+        if 'rsi' in dataframe.columns:
+            if dataframe['rsi_buy'].tolist()[0] == True:
+                follow.append("依 rsi 強弱交易")
+            else:
+                violate.append("依 rsi 強弱交易")
+
+        if 'stoch' in dataframe.columns:
+            if dataframe['stoch_buy'].tolist()[0] == True:
+                follow.append("依 stoch 強弱交易")
+            else:
+                violate.append("依 stoch 強弱交易")
+
+        if 'cci' in dataframe.columns:
+            if dataframe['cci_buy'].tolist()[0] == True:
+                follow.append("依 cci 強弱交易")
+            else:
+                violate.append("依 cci 強弱交易")
+
+        if 'bbl' in dataframe.columns:
+            if dataframe['bbl_buy'].tolist()[0] == True:
+                follow.append("穿越 bbl 後交易")
+            else:
+                violate.append("穿越 bbl 後交易")
+
+        if 'kc' in dataframe.columns:
+            if dataframe['kc_buy'].tolist()[0] == True:
+                follow.append("穿越 kc 後交易")
+            else:
+                violate.append("穿越 kc 後交易")
+
+
+        if 'cmf' in dataframe.columns:
+            if dataframe['cmf_buy'].tolist()[0] == True:
+                follow.append("依 cmf 強弱交易")
+            else:
+                violate.append("依 cmf 強弱交易")
+
+        if 'mfi' in dataframe.columns:
+            if dataframe['mfi_buy'].tolist()[0] == True:
+                follow.append("依 mfi 強弱交易")
+            else:
+                violate.append("依 mfi 強弱交易")
+
+    else:
+        if 'sma' in dataframe.columns:
+            if dataframe['sma_sell'].tolist()[0] == True:
+                follow.append("穿越 sma 後交易")
+            else:
+                violate.append("穿越 sma 後交易")
+
+        if 'ema' in dataframe.columns:
+            if dataframe['ema_sell'].tolist()[0] == True:
+                follow.append("穿越 ema 後交易")
+            else:
+                violate.append("穿越 ema 後交易")
+
+        if 'wma' in dataframe.columns:
+            if dataframe['wma_sell'].tolist()[0] == True:
+                follow.append("穿越 wma 後交易")
+            else:
+                violate.append("穿越 wma 後交易")
+
+        if 'hma' in dataframe.columns:
+            if dataframe['hma_sell'].tolist()[0] == True:
+                follow.append("穿越 hma 後交易")
+            else:
+                violate.append("穿越 hma 後交易")
+
+        if 'rsi' in dataframe.columns:
+            if dataframe['rsi_sell'].tolist()[0] == True:
+                follow.append("依 rsi 強弱交易")
+            else:
+                violate.append("依 rsi 強弱交易")
+
+        if 'stoch' in dataframe.columns:
+            if dataframe['stoch_sell'].tolist()[0] == True:
+                follow.append("依 stoch 強弱交易")
+            else:
+                violate.append("依 stoch 強弱交易")
+
+        if 'cci' in dataframe.columns:
+            if dataframe['cci_sell'].tolist()[0] == True:
+                follow.append("依 cci 強弱交易")
+            else:
+                violate.append("依 cci 強弱交易")
+
+        if 'bbl' in dataframe.columns:
+            if dataframe['bbl_sell'].tolist()[0] == True:
+                follow.append("穿越 bbl 後交易")
+            else:
+                violate.append("穿越 bbl 後交易")
+
+        if 'kc' in dataframe.columns:
+            if dataframe['kc_sell'].tolist()[0] == True:
+                follow.append("穿越 kc 後交易")
+            else:
+                violate.append("穿越 kc 後交易")
+
+
+        if 'cmf' in dataframe.columns:
+            if dataframe['cmf_sell'].tolist()[0] == True:
+                follow.append("依 cmf 強弱交易")
+            else:
+                violate.append("依 cmf 強弱交易")
+
+        if 'mfi' in dataframe.columns:
+            if dataframe['mfi_sell'].tolist()[0] == True:
+                follow.append("依 mfi 強弱交易")
+            else:
+                violate.append("依 mfi 強弱交易")
+    data = {}
+    data['系統遵守'] = follow
+    data['系統違反'] = violate
+    return data
+
+# @app.route('/options')
+# def options():
+#     strategy_name = request.args.get('strategy_name')
+#     strategy = Strategy.get_strategy_by_name(strategy_name)
+#     return jsonify(list(set([trade.sname for trade in strategy.trades])))  
+
+# @app.route('/check_point', methods=['GET', 'POST'])
+# def check_point():
+#     data = request.get_json()
+#     trade = Trade.get(data['Id'])
+#     if trade.action == "買":
+#         point_data = get_point_data("buy", data['Id'])
+#     else:
+#         point_data = get_point_data("sell", data['Id'])
+#     if trade.follow == None:
+#         point_data['遵守'] = []
+#     else:
+#         point_data['遵守'] = trade.follow
+
+#     if trade.violate == None:
+#         point_data['違反'] = []
+#     else:
+#         point_data['違反'] = trade.violate
+
+#     point_data['待決定'] = [x for x in trade.strategy.defines if x not in point_data['遵守'] and x not in point_data['違反']]
+#     point_data['Volume'] = trade.quan
+#     print(point_data)
+#     return jsonify(point_data)
+
+
+
+
+
+
+@app.route('/update_review', methods=['POST'])
+def update_review():
+    global review_df
+    status = request.form.get("status", ' ')
+    conclusion = request.form.get('myTextarea')
+    duration = request.form.get('duration')
+    stock_name = request.form.get('stock_name')
+    profit = request.form.get('profit')
+    ratio = request.form.get('ratio')
+    number = request.form.get('number')
+    rule = request.form.get('rule')
+
+    user_id = int(current_user.get_id())
+    current_dir = os.getcwd()
+    filename = 'reviews.csv'
+    if not os.path.exists(os.path.join(current_dir, filename)):
+        df = pd.DataFrame(columns=["review_id", "user_id", "交易期間",  "股票名稱", "獲利", "報酬率", "交易筆數", "狀態", "結論", "使用規則"])
+
+        df.to_csv("reviews.csv", index=False, encoding='utf-8-sig')
+    review_id = pd.read_csv('reviews.csv', encoding='utf-8-sig').shape[0]
+
+    df = pd.DataFrame([[review_id, user_id, duration, stock_name, profit, ratio, number, status, conclusion, rule]], \
+        columns=["review_id", "user_id", "交易期間",  "股票名稱", "獲利", "報酬率", "交易筆數", "狀態", "結論", "使用規則"])
+
+    df.to_csv("reviews.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
+    review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
+
+    # print(f'--------------送出表單-------------')
+    # print(f'目前資料: {df}')
+    # print(f'--------------送出表單-------------')
+    return redirect(url_for('index'))
+
 @app.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
@@ -152,7 +1232,7 @@ def index():
         temp['日期'] = df['日期'].apply(lambda x: datetime.strptime(x, '%Y/%m/%d'))
         stock_symbol = symbol[:4]
         start_date = temp['日期'].min() - relativedelta(months=2)
-        end_date = temp['日期'].max() + relativedelta(days=2)
+        end_date = temp['日期'].max() + relativedelta(days=20)
         stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
         data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
 
@@ -573,7 +1653,7 @@ def add_review(review_id):
     stock_symbol = str(df['股票代號'].iloc[0])[:4]
 
     start_date = df['日期'].min() - relativedelta(months=3)
-    end_date = df['日期'].max() + relativedelta(days=2)
+    end_date = df['日期'].max() + relativedelta(days=20)
 
     stock = twstock.Stock(stock_symbol) # 台積電的股票代碼為 2330
     data = stock.fetch_from(start_date.year, start_date.month) # 從 start_date 開始查詢
@@ -854,9 +1934,9 @@ def get_stock_basic_info(stock_name, rule):
     total_profit = 0
     for _, row in trades.iterrows():
         if row['買/賣'] == '買':
-            total_profit -= row['價格'] * row['數量']
+            total_profit -= float(row['價格']) * float(row['數量'])
         else:
-            total_profit += row['價格'] * row['數量']
+            total_profit += float(row['價格']) * float(row['數量'])
     return_rate = total_profit / (trades[trades['買/賣'] == '買']['價格'] * trades[trades['買/賣'] == '買']['數量']).sum()
     data['獲利'] = total_profit
     data['報酬率'] = round(return_rate*100, 2)
@@ -1096,37 +2176,7 @@ def remove_nan(d):
     else:
         return d
 
-@app.route('/update_review', methods=['POST'])
-def update_review():
-    global review_df
-    status = request.form.get("status", ' ')
-    conclusion = request.form.get('myTextarea')
-    duration = request.form.get('duration')
-    stock_name = request.form.get('stock_name')
-    profit = request.form.get('profit')
-    ratio = request.form.get('ratio')
-    number = request.form.get('number')
-    rule = request.form.get('rule')
 
-    user_id = int(current_user.get_id())
-    current_dir = os.getcwd()
-    filename = 'reviews.csv'
-    if not os.path.exists(os.path.join(current_dir, filename)):
-        df = pd.DataFrame(columns=["review_id", "user_id", "交易期間",  "股票名稱", "獲利", "報酬率", "交易筆數", "狀態", "結論", "使用規則"])
-
-        df.to_csv("reviews.csv", index=False, encoding='utf-8-sig')
-    review_id = pd.read_csv('reviews.csv', encoding='utf-8-sig').shape[0]
-
-    df = pd.DataFrame([[review_id, user_id, duration, stock_name, profit, ratio, number, status, conclusion, rule]], \
-        columns=["review_id", "user_id", "交易期間",  "股票名稱", "獲利", "報酬率", "交易筆數", "狀態", "結論", "使用規則"])
-
-    df.to_csv("reviews.csv", index=False, encoding='utf-8-sig', mode="a", header=False)
-    review_df = pd.read_csv('reviews.csv', encoding='utf-8-sig')
-
-    # print(f'--------------送出表單-------------')
-    # print(f'目前資料: {df}')
-    # print(f'--------------送出表單-------------')
-    return redirect(url_for('index'))
 
 @app.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
 def edit_review(review_id):

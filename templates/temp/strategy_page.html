@@ -4,7 +4,7 @@
 {% include 'head.html' %}
 <head>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/card_table_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/strategy_table_style.css') }}">
 <style>
     .form_div h2, h4{
       margin-top: 10px;
@@ -35,7 +35,7 @@
     }
 
     .checkboxes .title {
-        background-color:       #84C1FF;
+        background-color: #84C1FF;
     }
 
     .checkboxes input[type="checkbox"]:checked + span {
@@ -92,19 +92,19 @@
         margin-top: 3vh;
     }
 
-    .cardNamelabel{
+    .strategyNamelabel{
         margin-left: 0vw;
     }
 </style>
 </head>
 <body>
-{% include 'navbar.html' %}
+{% include 'temp/navbar.html' %}
 <h2 style="margin-left: 45vw; margin-bottom: 10px; margin-top: 10px;">自訂卡組</h2>
-{% set amount = cards|length %}
+{% set amount = strategies|length %}
 <div class='rules'>
-    {% for i in range(cards|length) %}
+    {% for i in range(strategies|length) %}
         <div class="checkboxes">
-            <label><input type="radio" id="form-{{ i }}" name="radiobox-group"> <span class="os">{{cards[i]['卡組名稱']}}</span></label>
+            <label><input type="radio" id="form-{{ i }}" name="radiobox-group"> <span class="os">{{strategies[i].name}}</span></label>
         </div>
     {% endfor %}
 
@@ -113,16 +113,16 @@
     </div>
 </div>
 
-{% for i in range(cards|length + 1) %}
-{% if cards[i] %}
-    {% set list = cards[i]['使用卡牌'].split('-') %}
+{% for i in range(strategies|length + 1) %}
+{% if strategies[i] %}
+    {% set list = strategies[i].indicators %}
 {% else %}
     {% set list = [0] %}
     {% set i = amount %}
 {% endif %}
 <div class="container" id="form-{{ i }}-form" style="display: none;">
 
-<form id='form{{ i }}' action="{{ url_for('cards') }}" method='post'>
+<form id='form{{ i }}' action="{{ url_for('strategy_page') }}" method='post'>
     <div class="left" >
 
     <div class="checkboxes">
@@ -134,10 +134,10 @@
 
     <div class="checkboxes">
         <span class='title'>趨勢指標</span>
-        <label><input type="checkbox" name="trend" value="sma" {% if 'sma' in list %} checked {% endif %}> <span class="os">穿越 SMA 買賣</span></label>
-        <label><input type="checkbox" name="trend" value="ema" {% if 'ema' in list %} checked {% endif %}> <span class="os">穿越 EMA 買賣</span></label>
-        <label><input type="checkbox" name="trend" value="wma" {% if 'wma' in list %} checked {% endif %}> <span class="os">穿越 WMA 買賣</span></label>
-        <label><input type="checkbox" name="trend" value="hma" {% if 'hma' in list %} checked {% endif %}> <span class="os">穿越 HMA 買賣</span></label>
+        <label><input type="checkbox" name="trend" value="sma" {% if 'sma' in list %} checked {% endif %}> <span class="os">穿越SMA買賣</span></label>
+        <label><input type="checkbox" name="trend" value="ema" {% if 'ema' in list %} checked {% endif %}> <span class="os">穿越EMA買賣</span></label>
+        <label><input type="checkbox" name="trend" value="wma" {% if 'wma' in list %} checked {% endif %}> <span class="os">穿越WMA買賣</span></label>
+        <label><input type="checkbox" name="trend" value="hma" {% if 'hma' in list %} checked {% endif %}> <span class="os">穿越HMA買賣</span></label>
     </div>
 
     <div class="checkboxes">
@@ -150,8 +150,8 @@
 
     <div class="checkboxes">
         <span class='title'>通道指標</span>
-        <label><input type="checkbox" name="volatility" value="bbl" {% if 'bbl' in list %} checked {% endif %}> <span class="os">穿越 BBL 買賣</span></label>
-        <label><input type="checkbox" name="volatility" value="kc" {% if 'kc' in list %} checked {% endif %}> <span class="os">穿越 KC 買賣</span></label>
+        <label><input type="checkbox" name="volatility" value="bbl" {% if 'bbl' in list %} checked {% endif %}> <span class="os">穿越BBL買賣</span></label>
+        <label><input type="checkbox" name="volatility" value="kc" {% if 'kc' in list %} checked {% endif %}> <span class="os">穿越KC買賣</span></label>
     </div>
 
 
@@ -161,67 +161,78 @@
         <label><input type="checkbox" name="energy" value="mfi" {% if 'mfi' in list %} checked {% endif %}> <span class="os">MFI>20, MFI<50</span></label>
     </div>
 
-    <div class="checkboxes" id='custom{{ i }}'>
+    <div class="checkboxes" id='define_list{{ i }}'>
         <span class='title'>自定義選項</span>
-
-        {% for j in range(custom_list|length) %}
-            {% if custom_list[j] != '' %}
-                <label><input type="checkbox" id="item_{{ i }}_{{ j }}" name='item' value="{{ custom_list[j] }}" {% if custom_list[j] in list %} checked {% endif %} ><span class="os">{{ custom_list[j] }}</span></label>
+        {% if defines %}
+        {% for j in range(defines|length) %}
+            {% if defines[j] %}
+                <label><input type="checkbox" id="defines_{{ i }}_{{ j }}" name='defines' value="{{ defines[j] }}" 
+                    {% if strategies[i] %}
+                        {% if defines[j] in strategies[i].defines %}
+                           checked 
+                        {% endif %}
+                    {% endif %}>
+                    <span class="os">{{ defines[j] }}</span></label>
             {% endif %}
         {% endfor %}
+        {% endif %}
     </div>
-    </div>
+</div>
 
     <div class="right" >
   <div class="block">
-    <label class="cardNamelabel" style="margin-left: 3vw;"><h3>項目</h3></label>
+    <label class="strategyNamelabel" style="margin-left: 3vw;"><h3>項目</h3></label>
 
     </div>
 
   <div class="block">
-    {% if cards[i] %}
-        <input style="display: none" type="text" value='{{ cards[i]["card_id"] }}' name="card_id" checked/>
-        <input type="text" value='{{ cards[i]["卡組名稱"] }}' name="rule_name" checked />
+    {% if strategies[i] %}
+        <input style="display: none" type="text" value='{{ strategies[i].id }}' name="strategy_id"/>
+        <input type="text" value='{{ strategies[i].name }}' name="strategy_name" />
     {% else %}
-        <input style="display: none" type="text" value='' name="card_id" checked/>
-        <input type="text" id="rule_name" name="rule_name" placeholder="輸入策略名稱" required /><br>
+        <input style="display: none" type="text" value='' name="strategy_id"/>
+        <input type="text" id="strategy_name" name="strategy_name" placeholder="輸入策略名稱" required /><br>
     {% endif %}
     
     </div>
 </form>
 
-      <form action="{{ url_for('delete_component') }}" method='post'>
-<div class="block">
+      <form  action="{{ url_for('temp_delete_define') }}"  method='post'>
+        <div class="block">
 
-<select id="component" name="component" class="box">
-<option value="" selected disabled>選擇刪除項目</option>
-{% for j in range(custom_list|length) %}
-    {% if custom_list[j] != '' %}
-        <option value="{{ custom_list[j] }}">{{ custom_list[j] }}</option>
-    {% endif %}
-{% endfor %}
-</select>
-</div>
+        <select id="define_name" name="define_name" class="box">
+        <option value="" selected disabled>選擇刪除項目</option>
+        {% if defines %}
+            {% for j in range(defines|length) %}
+                {% if defines[j] %}
+                    <option value="{{ defines[j] }}">{{ defines[j] }}</option>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
 
-<div class="block">
-<input type="submit" class="btn btn-primary big-btn" value="刪除項目">
-</div>
+        </select>
+        </div>
+
+        <div class="block">
+        <input type="submit" class="btn btn-primary big-btn" value="刪除項目">
+        </div>
       </form>
-  <form id="myForm">
-  <div class="block">
-    <input type="text"  id="myText{{ i }}" placeholder="輸入添加項目" />
-  </div>
-  <div class="block">
-    <input type="button"  class="btn btn-primary big-btn" onclick="addOption({{ i }})"  value="添加項目" />
-  </div>
-  </form>
+
+      <form  action="{{ url_for('temp_add_define') }}" method='post'>
+        <div class="block">
+            <input type="text" name="define_name" id="myText{{ i }}" placeholder="輸入添加項目" />
+        </div>
+        <div class="block">
+            <input type="submit" class="btn btn-primary big-btn" value="添加項目">
+        </div>
+      </form>
 
   <div class="block">
     <button type="submit" class="btn btn-primary big-btn"  onclick="submit_form({{ i }})">更新策略</button>
   </div>
   <div class="block">
-    {% if cards[i] %}
-      <form  action="{{ url_for('delete_card', card_id=cards[i]['card_id']) }}" method='get'>
+    {% if strategies[i] %}
+      <form action="{{ url_for('temp_delete_strategy', strategy_id=strategies[i].id) }}" method='post'>
         <input type="submit" class="btn btn-primary big-btn" value="刪除策略">
       </form>
     {% endif %}
@@ -238,17 +249,17 @@
 
 {% endfor %}
 
-            <div class="error">
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-              {% for message in messages %}
+<div class="error">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for message in messages %}
               {% if message == '不可刪除正在使用的策略' or message == '不可刪除套用在交易上的卡牌' %}
                 {{ message }}
               {% endif %}
-              {% endfor %}
-          {% endif %}
-        {% endwith %}
-            </div>
+          {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
 
 
     <script>
@@ -267,28 +278,7 @@
       });
     });
 
-function addOption(index) {
-    var text = document.getElementById("myText" + index).value;
 
-    var label = document.createElement("label");
-
-    var input = document.createElement("input");
-    input.type = "checkbox";
-    input.name = "item";
-    input.value = text;
-
-    var span = document.createElement("span");
-    span.className = "os";
-    span.textContent = text;
-
-    label.appendChild(input);
-    label.appendChild(span);
-
-
-    var div = document.getElementById("custom" + index);
-    div.appendChild(label);
-
-}
 function submit_form(index) {
     var form = document.getElementById("form" + index);
     form.submit();

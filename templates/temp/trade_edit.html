@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>編輯交易</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/edit_form_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index_table_style.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
+
+</head>
+<body>
+<div class='form_div'>
+  <form id="edit-trade-form" action="{{ url_for('temp_edit_trade', trade_id=trade.id) }}" method='post'>
+    <h2>Form Validation</h2>
+    <div class="form-group">
+        <label for="scode">股票代號</label>
+      <input type="text" id="scode" name="scode" value="{{ trade.scode }}" readonly>
+    </div>
+    <div class="form-group">
+        <label for="sname">股票名稱</label>
+        <input type="text" id="sname" name="sname" value="{{ trade.sname }}" readonly><br>
+    </div>
+    <div class="form-group">
+        <label for="price">價格:</label>
+        <input type="number" step="0.01" id="price" name="price" value="{{ trade.price }}" required><br>
+    </div>
+    <div class="form-group">
+        <label for="quan">數量:</label>
+        <input type="number" id="quan" name="quan" value="{{ trade.quan }}" required><br>
+    </div>
+    <div class="form-group">
+        <label for="reason">原因:</label>
+        <input type="text" id="reason" value="{{ trade.reason }}" name="reason"><br>
+    </div>
+    <div class="form-group date">
+      <label for="date">日期</label>
+      <input type="date" id="date" name="date" value="{{ trade.date.strftime('%Y-%m-%d') }}" placeholder="輸入交易日期" required>
+    </div>
+    <div class="form-group gender">
+      <label for="action">行為</label>
+      <select id="action" name="action" >
+        <option value="{{ trade.action }}" selected >{{ trade.action }}</option>
+        <option value="買">買</option>
+        <option value="賣">賣</option>
+      </select>
+    </div>
+    <div class="form-group gender">
+      <label for="strategy_name">使用規則:</label>
+      <select id="strategy_name" name="strategy_name">
+          <option  value="{{ trade.strategy.name }}" selected>{{ trade.strategy.name }}</option>
+          <option value="temp1">temp1</option>
+
+      </select>
+    </div>
+    <div class="form-group submit-btn">
+      <input type="submit" value="Submit">
+    </div>
+    </form>
+</div>
+
+
+</body>
+</html>
+

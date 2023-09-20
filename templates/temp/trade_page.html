@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/form_style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index_table_style.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" />
+
+    <title>股票交易檢討系統</title>
+    <style>
+
+    </style>
+</head>
+<body>
+    {% include 'temp/navbar.html' %}
+
+    <form id="myForm" style='display: none;' action="/" method="POST">
+    <label for="scode">請輸入股票代碼：</label>
+    <input type="text" id="scode" name="scode" value="{{ scode }}">
+    <input type="submit" value="查詢">
+    </form>
+    <div id="candlestick-chart" class="candlestick-chart">
+        <h3 style="margin-left: 38%">{{ sname }}</h1>
+        {{ graph|safe }}
+    </div>
+
+    <div class="table-outbox">
+    <h3 style="margin-left: 40%">{{ sname }}交易記錄</h1>
+
+      <table>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>股票代號</th>
+            <th>股票名稱</th>
+            <th>價格</th>
+            <th>數量</th>
+            <th>買/賣</th>
+            <th>原因</th>
+            <th>使用規則</th>
+            <th>編輯</th>
+            <th>刪除</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for trade in trades %}
+                <tr>
+                    <td>{{ trade.date }}</td>
+                    <td>{{ trade.scode }}</td>
+                    <td>{{ trade.sname }}</td>
+                    <td>{{ trade.price }}</td>
+                    <td>{{ trade.quan }}</td>
+                    <td>{{ trade.action }}</td>
+                    <td>{{ trade.reason }}</td>
+                    <td>{{ trade.strategy.name }}</td>
+                    <td>
+                        <form action="{{ url_for('temp_edit_trade', trade_id=trade.id) }}" method="get">
+                            <!-- 創建一個按鈕 -->
+                            <input type="submit" class='submit-button' value="編輯">
+                        </form>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('temp_delete_trade', trade_id=trade.id) }}" method="get">
+                            <!-- 創建一個按鈕 -->
+                            <input type="submit" class='submit-button' value="刪除">
+                        </form>
+                    </td>
+                    
+                    
+                </tr>
+            {% endfor %}
+
+        </tbody>
+      </table>
+      <div class="floor">
+        <button id="showButton" class='submit-button addbtn' >新增</button>
+      </div>
+    </div>
+    {% include 'temp/trade_add.html' %}
+
+
+
+
+    <script>
+        const formDiv = document.querySelector(".form_div");
+
+        document.getElementById("showButton").addEventListener("click", function() {
+            formDiv.style.opacity = '1';
+            formDiv.style.zIndex = "9999";
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!formDiv.contains(event.target) && event.target !== document.getElementById("showButton")) {
+            formDiv.style.opacity = '0';
+            formDiv.style.zIndex = "-1";
+          }
+        });
+
+
+    </script>
+</body>
+</html>

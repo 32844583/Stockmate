@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>股票交易檢討系統</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/report_table_style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  .box {
+    width: 120px;
+    height: 30px;
+    border: 1px solid #999;
+    font-size: 18px;
+    color: #5599FF;
+    background-color: #eee;
+    border-radius: 5px;
+    box-shadow: 4px 4px #ccc;
+    margin-top: 10px;
+  }
+  .form_div h2, h4{
+    margin-top: 10px;
+  }
+
+  .error {
+    color: red;
+    font-weight: bold;
+    opacity: 1;
+    transition: opacity 2s;
+    font-size: 2em;
+    margin-left: 42.5vw;
+
+  }
+  .fade-out {
+    opacity: 0;
+  }
+
+  .submit-button {
+        background-color: #46A3FF; /* 綠色 */
+        border: none;
+        color: white;
+        padding: 4px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9em;
+        margin: 4px 2px;
+        cursor: pointer;
+  }
+
+  .submit-button:hover {
+          background-color: #0072E3;
+  }
+</style>
+</head>
+{% include 'temp/navbar.html' %}
+
+<body><!-- 下拉列表 -->
+
+<div class="table-outbox">
+<h1>績效報表彙總</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>交易期間</th>
+        <th>股票名稱</th>
+        <th>獲利</th>
+        <th>報酬率</th>
+        <th>交易筆數</th>
+        <th>使用規則</th>
+        <th>編輯</th>
+        <th>刪除</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% if reports %}
+          {% for report in reports %}
+              <tr>
+                  <td>{{ report.min_date.strftime('%Y-%m-%d') }}到{{ report.max_date.strftime('%Y-%m-%d') }}</td>
+                  <td>{{ report.trades[0].sname }}</td>
+                  <td>{{ report.earning }}</td>
+                  <td>{{ report.earate }}%</td>
+                  <td>{{ report.trades|length }}</td>
+                  <td>{{ report.strategy.name }}</td>
+                  <td>
+                      <form action="{{ url_for('temp_edit_report', report_id=report.id) }}" method="get">
+                          <input class="submit-button" type="submit" value="編輯">
+                      </form>
+                  </td>
+                  <td>
+                      <form action="{{ url_for('temp_delete_report', report_id=report.id) }}" method="get">
+                          <input class="submit-button" type="submit" value="刪除">
+                      </form>
+                  </td>
+                  
+                  
+              </tr>
+          {% endfor %}
+        {% endif %}
+
+    </tbody>
+  </table>
+  <div class="floor">
+    <button id="showButton" class='submit-button addbtn' >新增</button>
+  </div>
+</div>
+
+<div class="form_div">
+  <form action="{{ url_for('temp_add_report') }}" method='GET'>
+    <h2 style="margin-left: 40%;">新增報表</h2>
+    <h4>卡組名稱:</h4>
+    <select id="strategy_name" name="strategy_name" class="box">
+      <option value="" selected disabled>卡組名稱</option>
+      {% for single_option in strategy_option %}
+      <option value="{{ single_option }}">{{ single_option }}</option>
+      {% endfor %}
+    </select>
+
+    <h4>股票名稱:</h4>
+    <select id="sname" name="sname" class="box">
+        <option value="" selected disabled>股票名稱</option>
+    </select>
+
+
+    <div style="margin-top: 10px; margin-left: 11.5vw;">
+        <input class="submit-btn" type="submit" value="Submit">
+    </div>
+  </form>
+</div>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="error">
+      {% for message in messages %}
+      {% if message == '不可重複添加報表' %}
+        {{ message }}
+      {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<script>
+const ruleSelect = document.querySelector('#strategy_name');
+const optionsSelect = document.querySelector('#sname');
+
+ruleSelect.addEventListener('change', () => {
+  const strategy_name = ruleSelect.value;
+  
+  fetch(`/options?strategy_name=${strategy_name}`)
+    .then(response => response.json())
+    .then(options => {
+      optionsSelect.innerHTML = '';
+      
+      for (const option of options) {
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          optionsSelect.appendChild(optionElement);
+      }
+    });
+});
+
+  const formDiv = document.querySelector(".form_div");
+
+  document.getElementById("showButton").addEventListener("click", function() {
+      formDiv.style.opacity = '1';
+      formDiv.style.zIndex = "9999";
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!formDiv.contains(event.target) && event.target !== document.getElementById("showButton")) {
+      formDiv.style.opacity = '0';
+      formDiv.style.zIndex = "-1";
+    }
+  });
+
+setTimeout(function() {
+  var errorDiv = document.querySelector('.error');
+  errorDiv.classList.add('fade-out');
+}, 1000);
+
+</script>
+
+
+
+</body>
+</html>
